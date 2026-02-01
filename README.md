@@ -19,3 +19,26 @@
 | 14 | 5654.42 | 3801.78 | ~32.76% |
 | 15 | 5661.52 | 3806.07 | ~32.77% |
 | **Average** | **5609.33** | **3808.00** | **~32.11%** |
+
+## Scene Two
+### Performance Comparison: Base Rasteriser vs. Optimised Rasteriser
+*Note: At the optimised rasteriser, there appears to be a stubborn black line, that slightly alters with the sphere's visuals
+(not game breaking, but irritating... will be working on a fix)*
+| Iteration | Base Rasterizer (ms) | Optimised Rasterizer (ms) | Improvement (%) |
+| :--- | :--- | :--- | :--- |
+| 1 | 1995.87 | 1526.39 | ~23.52% |
+| 2 | 2138.83 | 1660.15 | ~22.38% |
+| 3 | 2105.74 | 1649.62 | ~21.66% |
+| 4 | 2103.47 | 1630.80 | ~22.47% |
+| 5 | 2120.90 | 1632.62 | ~23.02% |
+| 6 | 2113.35 | 1628.65 | ~22.94% |
+| 7 | 2098.33 | 1629.51 | ~22.34% |
+| 8 | 2115.13 | 1651.43 | ~21.92% |
+| 9 | 2131.63 | 1661.02 | ~22.08% |
+| 10 | 2116.24 | 1649.07 | ~22.08% |
+| 11 | 2092.96 | 1662.53 | ~20.57% |
+| 12 | 2103.61 | 1655.55 | ~21.30% |
+| 13 | 2134.69 | 1649.67 | ~22.72% |
+| 14 | 2089.59 | 1643.53 | ~21.35% |
+| 15 | 2083.39 | 1662.74 | ~20.19% |
+| **Average** | **2109.58** | **1639.55** | **~22.28%** |
