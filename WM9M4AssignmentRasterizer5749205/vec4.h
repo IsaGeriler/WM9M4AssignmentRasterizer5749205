@@ -133,14 +133,14 @@ public:
         //x /= length;
         //y /= length;
         //z /= length;
+
+        // Obsolete Optimization - Fast Inverse Square Root (in fact, this slows down the program on modern CPUs...)
+        //float invLength = Q_rsqrt(x * x + y * y + z * z);
+        //x *= invLength; y *= invLength; z *= invLength;
         
         // Optimization - 1 Division, 3 Multiplication
         float length = std::sqrt(x * x + y * y + z * z);
         float invLength = 1.f / length;
         x *= invLength; y *= invLength; z *= invLength;
-
-        // Obsolete Optimization - Fast Inverse Square Root (in fact, this slows down the program on modern CPUs...)
-        //float invLength = Q_rsqrt(x * x + y * y + z * z);
-        //x *= invLength; y *= invLength; z *= invLength;
     }
 };

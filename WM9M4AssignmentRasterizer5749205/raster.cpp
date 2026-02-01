@@ -53,7 +53,7 @@ static void render(Renderer& renderer, Mesh* mesh, matrix& camera, Light& L) {
         }
 
         // Clip triangles with Z-values outside [-1, 1]
-        if (fabs(t[0].p[2]) > 1.0f || fabs(t[1].p[2]) > 1.0f || fabs(t[2].p[2]) > 1.0f) continue;
+        if (fabs(t[0].p[2]) > 1.f || fabs(t[1].p[2]) > 1.f || fabs(t[2].p[2]) > 1.f) continue;
 
         // Create a triangle object and render it
         triangle tri(t[0], t[1], t[2]);
@@ -66,7 +66,7 @@ static void render(Renderer& renderer, Mesh* mesh, matrix& camera, Light& L) {
 static void sceneTest() {
     Renderer renderer;
     // create light source {direction, diffuse intensity, ambient intensity}
-    Light L{ vec4(0.f, 1.f, 1.f, 0.f), colour(1.0f, 1.0f, 1.0f), colour(0.2f, 0.2f, 0.2f) };
+    Light L{ vec4(0.f, 1.f, 1.f, 0.f), colour(1.f, 1.f, 1.f), colour(0.2f, 0.2f, 0.2f) };
     // camera is just a matrix
     matrix camera = matrix::makeIdentity(); // Initialize the camera with identity matrix
 
@@ -75,7 +75,7 @@ static void sceneTest() {
     std::vector<Mesh*> scene; // Vector to store scene objects
 
     // Create a sphere and a rectangle mesh
-    Mesh mesh = Mesh::makeSphere(1.0f, 10, 20);
+    Mesh mesh = Mesh::makeSphere(1.f, 10, 20);
     //Mesh mesh2 = Mesh::makeRectangle(-2, -1, 2, 1);
 
     // add meshes to scene
@@ -142,16 +142,16 @@ static void scene1() {
     for (unsigned int i = 0; i < 20; i++) {
         Mesh* m = new Mesh();
         *m = Mesh::makeCube(1.f);
-        m->world = matrix::makeTranslation(-2.0f, 0.0f, (-3 * static_cast<float>(i))) * makeRandomRotation();
+        m->world = matrix::makeTranslation(-2.f, 0.f, (-3 * static_cast<float>(i))) * makeRandomRotation();
         scene.push_back(m);
         m = new Mesh();
         *m = Mesh::makeCube(1.f);
-        m->world = matrix::makeTranslation(2.0f, 0.0f, (-3 * static_cast<float>(i))) * makeRandomRotation();
+        m->world = matrix::makeTranslation(2.f, 0.f, (-3 * static_cast<float>(i))) * makeRandomRotation();
         scene.push_back(m);
     }
 
-    float zoffset = 8.0f; // Initial camera Z-offset
-    float step = -0.1f;  // Step size for camera movement
+    float zoffset = 8.f;  // Initial camera Z-offset
+    float step = -0.1f;   // Step size for camera movement
 
     auto start = std::chrono::high_resolution_clock::now();
     std::chrono::time_point<std::chrono::high_resolution_clock> end;

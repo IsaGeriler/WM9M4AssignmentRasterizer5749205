@@ -14,7 +14,7 @@ class colour {
 
 public:
     // Enum for indexing the RGB components
-    enum Colour { RED = 0, GREEN = 1, BLUE = 2, SIZE = 3 };
+    enum Colour { RED = 0, GREEN = 1, BLUE = 2 };
 
     // Constructor to initialize the colour with specified RGB values.
     // Default values are 0 (black).
@@ -22,7 +22,7 @@ public:
     // - _r: Red component (default 0.0f)
     // - _g: Green component (default 0.0f)
     // - _b: Blue component (default 0.0f)
-    colour(float _r = 0, float _g = 0, float _b = 0) : r(_r), g(_g), b(_b) {}
+    colour(float _r = 0.f, float _g = 0.f, float _b = 0.f) : r(_r), g(_g), b(_b) {}
 
     // Sets the RGB components of the colour.
     // Input Variables:

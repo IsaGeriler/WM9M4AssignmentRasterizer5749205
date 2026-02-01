@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <immintrin.h>
 #include <vector>
 
 #include "vec4.h"
@@ -51,7 +52,7 @@ public:
     // Input Variables:
     // - mx: Another matrix to multiply with
     // Returns the resulting matrix
-    matrix operator * (const matrix& mx) const {
+    matrix operator*(const matrix& mx) const {
         matrix ret;
 
         // Base Rasterizer
@@ -65,27 +66,49 @@ public:
         //    }
         //}
 
-        // Optimized - Hardcode results for now
-        // Think of SIMD later, imagine a 16x16 matrix... hardcoding 256 lines will be brutal
-        ret.a[0] = a[0] * mx.a[0] + a[1] * mx.a[4] + a[2] * mx.a[8] + a[3] * mx.a[12];
-        ret.a[1] = a[0] * mx.a[1] + a[1] * mx.a[5] + a[2] * mx.a[9] + a[3] * mx.a[13];
-        ret.a[2] = a[0] * mx.a[2] + a[1] * mx.a[6] + a[2] * mx.a[10] + a[3] * mx.a[14];
-        ret.a[3] = a[0] * mx.a[3] + a[1] * mx.a[7] + a[2] * mx.a[11] + a[3] * mx.a[15];
+        // Optimized - Unrolling & Hardcoding Results
+        //ret.a[0] = a[0] * mx.a[0] + a[1] * mx.a[4] + a[2] * mx.a[8] + a[3] * mx.a[12];
+        //ret.a[1] = a[0] * mx.a[1] + a[1] * mx.a[5] + a[2] * mx.a[9] + a[3] * mx.a[13];
+        //ret.a[2] = a[0] * mx.a[2] + a[1] * mx.a[6] + a[2] * mx.a[10] + a[3] * mx.a[14];
+        //ret.a[3] = a[0] * mx.a[3] + a[1] * mx.a[7] + a[2] * mx.a[11] + a[3] * mx.a[15];
 
-        ret.a[4] = a[4] * mx.a[0] + a[5] * mx.a[4] + a[6] * mx.a[8] + a[7] * mx.a[12];
-        ret.a[5] = a[4] * mx.a[1] + a[5] * mx.a[5] + a[6] * mx.a[9] + a[7] * mx.a[13];
-        ret.a[6] = a[4] * mx.a[2] + a[5] * mx.a[6] + a[6] * mx.a[10] + a[7] * mx.a[14];
-        ret.a[7] = a[4] * mx.a[3] + a[5] * mx.a[7] + a[6] * mx.a[11] + a[7] * mx.a[15];
+        //ret.a[4] = a[4] * mx.a[0] + a[5] * mx.a[4] + a[6] * mx.a[8] + a[7] * mx.a[12];
+        //ret.a[5] = a[4] * mx.a[1] + a[5] * mx.a[5] + a[6] * mx.a[9] + a[7] * mx.a[13];
+        //ret.a[6] = a[4] * mx.a[2] + a[5] * mx.a[6] + a[6] * mx.a[10] + a[7] * mx.a[14];
+        //ret.a[7] = a[4] * mx.a[3] + a[5] * mx.a[7] + a[6] * mx.a[11] + a[7] * mx.a[15];
 
-        ret.a[8] = a[8] * mx.a[0] + a[9] * mx.a[4] + a[10] * mx.a[8] + a[11] * mx.a[12];
-        ret.a[9] = a[8] * mx.a[1] + a[9] * mx.a[5] + a[10] * mx.a[9] + a[11] * mx.a[13];
-        ret.a[10] = a[8] * mx.a[2] + a[9] * mx.a[6] + a[10] * mx.a[10] + a[11] * mx.a[14];
-        ret.a[11] = a[8] * mx.a[3] + a[9] * mx.a[7] + a[10] * mx.a[11] + a[11] * mx.a[15];
+        //ret.a[8] = a[8] * mx.a[0] + a[9] * mx.a[4] + a[10] * mx.a[8] + a[11] * mx.a[12];
+        //ret.a[9] = a[8] * mx.a[1] + a[9] * mx.a[5] + a[10] * mx.a[9] + a[11] * mx.a[13];
+        //ret.a[10] = a[8] * mx.a[2] + a[9] * mx.a[6] + a[10] * mx.a[10] + a[11] * mx.a[14];
+        //ret.a[11] = a[8] * mx.a[3] + a[9] * mx.a[7] + a[10] * mx.a[11] + a[11] * mx.a[15];
 
-        ret.a[12] = a[12] * mx.a[0] + a[13] * mx.a[4] + a[14] * mx.a[8] + a[15] * mx.a[12];
-        ret.a[13] = a[12] * mx.a[1] + a[13] * mx.a[5] + a[14] * mx.a[9] + a[15] * mx.a[13];
-        ret.a[14] = a[12] * mx.a[2] + a[13] * mx.a[6] + a[14] * mx.a[10] + a[15] * mx.a[14];
-        ret.a[15] = a[12] * mx.a[3] + a[13] * mx.a[7] + a[14] * mx.a[11] + a[15] * mx.a[15];
+        //ret.a[12] = a[12] * mx.a[0] + a[13] * mx.a[4] + a[14] * mx.a[8] + a[15] * mx.a[12];
+        //ret.a[13] = a[12] * mx.a[1] + a[13] * mx.a[5] + a[14] * mx.a[9] + a[15] * mx.a[13];
+        //ret.a[14] = a[12] * mx.a[2] + a[13] * mx.a[6] + a[14] * mx.a[10] + a[15] * mx.a[14];
+        //ret.a[15] = a[12] * mx.a[3] + a[13] * mx.a[7] + a[14] * mx.a[11] + a[15] * mx.a[15];
+
+        // Optimized - AVX Multiplication (SIMD, using m128 registers (4 floats) instead of m256 (8 floats))
+        // Important: A x B != B x A
+        // Load the entirety of mx/right hand side matrix
+        __m128 col_one = _mm_loadu_ps(&mx.m[0][0]);
+        __m128 col_two = _mm_loadu_ps(&mx.m[1][0]);
+        __m128 col_three = _mm_loadu_ps(&mx.m[2][0]);
+        __m128 col_four = _mm_loadu_ps(&mx.m[3][0]);
+
+        for (size_t i = 0; i < 4; i++) {
+            // Load x, y, z, and w components of this/left hand side matrix
+            __m128 x = _mm_broadcast_ss(&m[i][0]);
+            __m128 y = _mm_broadcast_ss(&m[i][1]);
+            __m128 z = _mm_broadcast_ss(&m[i][2]);
+            __m128 w = _mm_broadcast_ss(&m[i][3]);
+
+            // Calculate Dot Products
+            __m128 resA = _mm_fmadd_ps(x, col_one, _mm_mul_ps(y, col_two));
+            __m128 resB = _mm_fmadd_ps(z, col_three, _mm_mul_ps(w, col_four));
+
+            // Store the result
+            _mm_storeu_ps(&ret.m[i][0], _mm_add_ps(resA, resB));
+        }
 
         return ret;
     }
@@ -102,7 +125,7 @@ public:
         m.zero();
 
         // Base Rasterizer - Division is an expensive operation
-        // float tanHalfFov = std::tan(fov / 2.0f);
+        //float tanHalfFov = std::tan(fov / 2.0f);
         //m.a[0] = 1.0f / (aspect * tanHalfFov);
         //m.a[5] = 1.0f / tanHalfFov;
         //m.a[10] = -f / (f - n);
