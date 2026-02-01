@@ -76,16 +76,17 @@ public:
     // - alpha, beta, gamma: Barycentric coordinates of the point
     // Returns true if the point is inside the triangle, false otherwise
     bool getCoordinates(vec2D p, float& alpha, float& beta, float& gamma) {
-        // Base Rasterizer - 3 Divisions!!!
+        // Base Rasterizer - 3 Divisions
         //alpha = getC(vec2D(v[0].p), vec2D(v[1].p), p) / area;
         //beta = getC(vec2D(v[1].p), vec2D(v[2].p), p) / area;
         //gamma = getC(vec2D(v[2].p), vec2D(v[0].p), p) / area;
 
-        // Optimized - Inverse Area: 1 Division, 3 Multiplication
+        // Optimized - Inverse Area (1 Division, 3 Multiplication)
+        // Optimized - Since alpha + beta + gamma <= 1; let alpha = 1 - beta - gamma
         float invArea = 1.f / area;
-        alpha = getC(vec2D(v[0].p), vec2D(v[1].p), p) * invArea;
         beta = getC(vec2D(v[1].p), vec2D(v[2].p), p) * invArea;
         gamma = getC(vec2D(v[2].p), vec2D(v[0].p), p) * invArea;
+        alpha = 1.f - beta - gamma;
 
         if (alpha < 0.f || beta < 0.f || gamma < 0.f) return false;
         return true;
@@ -121,7 +122,7 @@ public:
                 // Base Rasterizer
                 //float alpha, beta, gamma;
 
-                //// Check if the pixel lies inside the triangle
+                // Check if the pixel lies inside the triangle
                 //if (getCoordinates(vec2D((float)x, (float)y), alpha, beta, gamma)) {
                 //    // Interpolate color, depth, and normals
                 //    colour c = interpolate(beta, gamma, alpha, v[0].rgb, v[1].rgb, v[2].rgb);
@@ -166,7 +167,7 @@ public:
                         normal.normalise();
 
                         // typical shader begin
-                        // Base Rasterizer - Normalize light as iteration times...
+                        // Base Rasterizer - Normalize light as iteration times... (change at raster.cpp)
                         // L.omega_i.normalise();
                         float dot = std::max(vec4::dot(L.omega_i, normal), 0.f);
                         colour a = (c * kd) * (L.L * dot) + (L.ambient * ka);  // using kd instead of ka for ambient
