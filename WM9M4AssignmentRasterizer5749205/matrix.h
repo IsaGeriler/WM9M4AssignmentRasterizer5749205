@@ -39,12 +39,37 @@ public:
     // Input Variables:
     // - v: vec4 object to multiply with the matrix
     // Returns the resulting transformed vec4
-    vec4 operator * (const vec4& v) const {
+    vec4 operator*(const vec4& v) const {
         vec4 result;
-        result[0] = a[0] * v[0] + a[1] * v[1] + a[2] * v[2] + a[3] * v[3];
-        result[1] = a[4] * v[0] + a[5] * v[1] + a[6] * v[2] + a[7] * v[3];
-        result[2] = a[8] * v[0] + a[9] * v[1] + a[10] * v[2] + a[11] * v[3];
-        result[3] = a[12] * v[0] + a[13] * v[1] + a[14] * v[2] + a[15] * v[3];
+        // Base Rasterizer - Already optimized enough with unrolling
+        //result[0] = a[0] * v[0] + a[1] * v[1] + a[2] * v[2] + a[3] * v[3];
+        //result[1] = a[4] * v[0] + a[5] * v[1] + a[6] * v[2] + a[7] * v[3];
+        //result[2] = a[8] * v[0] + a[9] * v[1] + a[10] * v[2] + a[11] * v[3];
+        //result[3] = a[12] * v[0] + a[13] * v[1] + a[14] * v[2] + a[15] * v[3];
+
+        // Optimised - AVX Multiplication (SIMD, using m128 registers (4 floats) instead of m256 (8 floats))
+        // Load in the vector to the m128 register
+        __m128 vec = _mm_loadu_ps(v.v);
+
+        // Load the matrix and multiply it with the vector components
+        __m128 m0 = _mm_mul_ps(_mm_loadu_ps(&a[0]), vec);   // a[0] * v[0]  | a[1] * v[1]  | a[2] * v[2]  | a[3] * v[3]
+        __m128 m1 = _mm_mul_ps(_mm_loadu_ps(&a[4]), vec);   // a[4] * v[0]  | a[5] * v[1]  | a[6] * v[2]  | a[7] * v[3]
+        __m128 m2 = _mm_mul_ps(_mm_loadu_ps(&a[8]), vec);   // a[8] * v[0]  | a[9] * v[1]  | a[10] * v[2] | a[11] * v[3]
+        __m128 m3 = _mm_mul_ps(_mm_loadu_ps(&a[12]), vec);  // a[12] * v[0] | a[13] * v[1] | a[14] * v[2] | a[15] * v[3]
+
+        // Horizontal Add Step (and breakdown in comments)
+        // a[0] * v[0] + a[1] * v[1] | a[2] * v[2] + a[3] * v[3] | a[4] * v[0] + a[5] * v[1] | a[6] * v[2] + a[7] * v[3]
+        __m128 sum01 = _mm_hadd_ps(m0, m1);
+
+        // a[8] * v[0] + a[9] * v[1] | a[10] * v[2] + a[11] * v[3] | a[12] * v[0] + a[13] * v[1] | a[14] * v[2] + a[15] * v[3]
+        __m128 sum23 = _mm_hadd_ps(m2, m3);
+
+        // res[0] = a[0] * v[0] + a[1] * v[1] + a[2] * v[2] + a[3] * v[3]   | res[1] = a[4] * v[0] + a[5] * v[1] + a[6] * v[2] + a[7] * v[3]
+        // res[3] = a[8] * v[0] + a[9] * v[1] + a[10] * v[2] + a[11] * v[3] | res[4] = a[12] * v[0] + a[13] * v[1] + a[14] * v[2] + a[15] * v[3]
+        __m128 res = _mm_hadd_ps(sum01, sum23);
+
+        // Store the result vector to the vector v pointer
+        _mm_storeu_ps(result.v, res);
         return result;
     }
 
@@ -90,10 +115,10 @@ public:
         // Optimized - AVX Multiplication (SIMD, using m128 registers (4 floats) instead of m256 (8 floats))
         // Important: A x B != B x A
         // Load the entirety of mx/right hand side matrix
-        __m128 col_one = _mm_loadu_ps(&mx.m[0][0]);
-        __m128 col_two = _mm_loadu_ps(&mx.m[1][0]);
-        __m128 col_three = _mm_loadu_ps(&mx.m[2][0]);
-        __m128 col_four = _mm_loadu_ps(&mx.m[3][0]);
+        __m128 row_one = _mm_loadu_ps(&mx.m[0][0]);
+        __m128 row_two = _mm_loadu_ps(&mx.m[1][0]);
+        __m128 row_three = _mm_loadu_ps(&mx.m[2][0]);
+        __m128 row_four = _mm_loadu_ps(&mx.m[3][0]);
 
         for (size_t i = 0; i < 4; i++) {
             // Load x, y, z, and w components of this/left hand side matrix
@@ -103,8 +128,8 @@ public:
             __m128 w = _mm_broadcast_ss(&m[i][3]);
 
             // Calculate Dot Products
-            __m128 resA = _mm_fmadd_ps(x, col_one, _mm_mul_ps(y, col_two));
-            __m128 resB = _mm_fmadd_ps(z, col_three, _mm_mul_ps(w, col_four));
+            __m128 resA = _mm_fmadd_ps(x, row_one, _mm_mul_ps(y, row_two));
+            __m128 resB = _mm_fmadd_ps(z, row_three, _mm_mul_ps(w, row_four));
 
             // Store the result
             _mm_storeu_ps(&ret.m[i][0], _mm_add_ps(resA, resB));

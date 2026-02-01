@@ -6,11 +6,6 @@
 // The 'vec4' class represents a 4D vector and provides operations such as scaling, addition, subtraction, 
 // normalization, and vector products (dot and cross).
 class vec4 {
-    union {
-        struct { float x, y, z, w; };  // Components of the vector
-        float v[4];                    // Array representation of the vector components
-    };
-
 private:
     // Fast Inverse Square Root Implementation
     // This algorithm is best known for its usage at Quake III Arena (1999).
@@ -21,6 +16,7 @@ private:
     // https://www.lomont.org/papers/2003/InvSqrt.pdf
     // Historical context and attribution investigated by Rys Sommerfeldt:
     // https://www.beyond3d.com/content/articles/8/
+    // https://www.beyond3d.com/content/articles/15/
     float Q_rsqrt(float x) {
         float xhalf = 0.5f * x;
         int i = *(int*)&x;                 // Get bits for floating value
@@ -32,6 +28,11 @@ private:
     }
 
 public:
+    union {
+        struct { float x, y, z, w; };  // Components of the vector
+        float v[4];                    // Array representation of the vector components
+    };
+
     // Constructor to initialize the vector with specified values.
     // Default values: x = 0, y = 0, z = 0, w = 1.
     // Input Variables:
