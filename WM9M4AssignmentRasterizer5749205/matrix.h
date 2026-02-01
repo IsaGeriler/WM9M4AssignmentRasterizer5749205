@@ -134,13 +134,13 @@ public:
         
         // Optimized - Reduced Division Count
         float tanHalfFov = std::tan(fov * 0.5f);
-        float inverseAspectTanHalfFov = 1.f / (aspect * tanHalfFov);
-        float negFOverZNormalized = -f / (f - n);
+        float invAspectTanHalfFov = 1.f / (aspect * tanHalfFov);
+        float zNorm = 1.f / (f - n);
 
-        m.a[0] = inverseAspectTanHalfFov;           // 1.f / aspect * tanHalfFov
-        m.a[5] = inverseAspectTanHalfFov * aspect;  // 1.f / tanHalfFov
-        m.a[10] = negFOverZNormalized;              // -f / (f - n)
-        m.a[11] = negFOverZNormalized * n;          // -(f * n) / (f - n)
+        m.a[0] = invAspectTanHalfFov;           // 1.f / aspect * tanHalfFov
+        m.a[5] = aspect * invAspectTanHalfFov;  // 1.f / tanHalfFov
+        m.a[10] = -f * zNorm;                   // -f / (f - n)
+        m.a[11] = -(f * n) * zNorm;             // -(f * n) / (f - n)
         m.a[14] = -1.f;
        
         return m;
