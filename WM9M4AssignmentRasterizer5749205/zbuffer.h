@@ -3,6 +3,8 @@
 #include <concepts>
 #include <immintrin.h>
 
+#include "OptimisationProfiles.h"
+
 // Zbuffer class for managing depth values during rendering.
 // This class is template-constrained to only work with floating-point types ('float' or 'double').
 
@@ -48,39 +50,42 @@ public:
     // Clears the Z-buffer by setting all depth values to 1.0f,
     // which represents the farthest possible depth.
     void clear() {
-        // Base Rasterizer - Fills all 786,432 slots one by one...
-        //could also use fill_n
-        //for (unsigned int i = 0; i < width * height; i++) {
-        //    buffer[i] = T(1.0); // Reset each depth value
-        //}
-
-        // Optimization - Clear the buffer using SIMD, filling 8 floats in a single pass
+        #if OPT_DEPTH_BUFFER_CLEAR_AVX2
+        // Optimisation - Clear the depth buffer using SIMD/AVX2
         size_t i = 0;                        // Shared value
         size_t bufferSize = width * height;  // Buffer size
 
         // Check if the templated type is a float at the compile time
         if constexpr (std::is_same_v<T, float>) {
-            // Define a float vector of ones
-            __m256 vone = _mm256_set1_ps(1.f);
-            for (; i + 7 < bufferSize; i += 8)
-                _mm256_storeu_ps(&buffer[i], vone);
-
+            // Define a vector of ones (8 floats)
+            __m256 vOne = _mm256_set1_ps(1.f);
+            for (; i + 7 < bufferSize; i += 8) {
+                _mm256_storeu_ps(&buffer[i], vOne);
+            }
             // Handle Remaining Pixels
-            for (; i < bufferSize; i++)
+            for (; i < bufferSize; i++) {
                 buffer[i] = 1.f;
+            }
         }
-
         // Check if the templated type is a double at the compile time 
         else if constexpr (std::is_same_v<T, double>) {
-            // Define a double vector of ones
-            __m256d vone_d = _mm256_set1_pd(1.0);
-            for (; i + 3 < bufferSize; i += 4)
-                _mm256_storeu_pd(&buffer, vone_d);
-
+            // Define a vector of ones (4 doubles)
+            __m256d vOne = _mm256_set1_pd(1.0);
+            for (; i + 3 < bufferSize; i += 4) {
+                _mm256_storeu_pd(&buffer, vOne);
+            }
             // Handle Remaining Pixels
-            for (; i < bufferSize; i++)
+            for (; i < bufferSize; i++) {
                 buffer[i] = 1.0;
+            }
         }
+        #else
+        // Base Rasterizer - Fills all 786,432 slots one by one...
+        //could also use fill_n
+        for (unsigned int i = 0; i < width * height; i++) {
+            buffer[i] = T(1.0); // Reset each depth value
+        }
+        #endif
     }
 
     // Remove copying

@@ -4,6 +4,7 @@
 #include <immintrin.h>
 #include <vector>
 
+#include "OptimisationProfiles.h"
 #include "vec4.h"
 
 // Matrix class for 4x4 transformation matrices
@@ -41,35 +42,45 @@ public:
     // Returns the resulting transformed vec4
     vec4 operator*(const vec4& v) const {
         vec4 result;
-        // Base Rasterizer - Already optimized enough with unrolling
-        //result[0] = a[0] * v[0] + a[1] * v[1] + a[2] * v[2] + a[3] * v[3];
-        //result[1] = a[4] * v[0] + a[5] * v[1] + a[6] * v[2] + a[7] * v[3];
-        //result[2] = a[8] * v[0] + a[9] * v[1] + a[10] * v[2] + a[11] * v[3];
-        //result[3] = a[12] * v[0] + a[13] * v[1] + a[14] * v[2] + a[15] * v[3];
-
-        // Optimised - AVX Multiplication (SIMD, using m128 registers (4 floats) instead of m256 (8 floats))
+        #if OPT_MATRIX_VECMUL_AVX
+        // Optimisation - AVX Multiplication (SIMD, using m128 registers (4 floats))
         // Load in the vector to the m128 register
         __m128 vec = _mm_loadu_ps(v.v);
 
         // Load the matrix and multiply it with the vector components
-        __m128 m0 = _mm_mul_ps(_mm_loadu_ps(&a[0]), vec);   // a[0] * v[0]  | a[1] * v[1]  | a[2] * v[2]  | a[3] * v[3]
-        __m128 m1 = _mm_mul_ps(_mm_loadu_ps(&a[4]), vec);   // a[4] * v[0]  | a[5] * v[1]  | a[6] * v[2]  | a[7] * v[3]
-        __m128 m2 = _mm_mul_ps(_mm_loadu_ps(&a[8]), vec);   // a[8] * v[0]  | a[9] * v[1]  | a[10] * v[2] | a[11] * v[3]
-        __m128 m3 = _mm_mul_ps(_mm_loadu_ps(&a[12]), vec);  // a[12] * v[0] | a[13] * v[1] | a[14] * v[2] | a[15] * v[3]
+        __m128 m0 = _mm_mul_ps(_mm_loadu_ps(&a[0]), vec);   // a[0] * v[0], a[1] * v[1], a[2] * v[2], a[3] * v[3]
+        __m128 m1 = _mm_mul_ps(_mm_loadu_ps(&a[4]), vec);   // a[4] * v[0], a[5] * v[1], a[6] * v[2], a[7] * v[3]
+        __m128 m2 = _mm_mul_ps(_mm_loadu_ps(&a[8]), vec);   // a[8] * v[0], a[9] * v[1], a[10] * v[2], a[11] * v[3]
+        __m128 m3 = _mm_mul_ps(_mm_loadu_ps(&a[12]), vec);  // a[12] * v[0], a[13] * v[1], a[14] * v[2], a[15] * v[3]
 
         // Horizontal Add Step (and breakdown in comments)
-        // a[0] * v[0] + a[1] * v[1] | a[2] * v[2] + a[3] * v[3] | a[4] * v[0] + a[5] * v[1] | a[6] * v[2] + a[7] * v[3]
+        // a[0] * v[0] + a[1] * v[1]
+        // a[2] * v[2] + a[3] * v[3]
+        // a[4] * v[0] + a[5] * v[1]
+        // a[6] * v[2] + a[7] * v[3]
         __m128 sum01 = _mm_hadd_ps(m0, m1);
 
-        // a[8] * v[0] + a[9] * v[1] | a[10] * v[2] + a[11] * v[3] | a[12] * v[0] + a[13] * v[1] | a[14] * v[2] + a[15] * v[3]
+        // a[8] * v[0] + a[9] * v[1]
+        // a[10] * v[2] + a[11] * v[3]
+        // a[12] * v[0] + a[13] * v[1]
+        // a[14] * v[2] + a[15] * v[3]
         __m128 sum23 = _mm_hadd_ps(m2, m3);
 
-        // res[0] = a[0] * v[0] + a[1] * v[1] + a[2] * v[2] + a[3] * v[3]   | res[1] = a[4] * v[0] + a[5] * v[1] + a[6] * v[2] + a[7] * v[3]
-        // res[3] = a[8] * v[0] + a[9] * v[1] + a[10] * v[2] + a[11] * v[3] | res[4] = a[12] * v[0] + a[13] * v[1] + a[14] * v[2] + a[15] * v[3]
+        // res[0] = a[0] * v[0] + a[1] * v[1] + a[2] * v[2] + a[3] * v[3]
+        // res[1] = a[4] * v[0] + a[5] * v[1] + a[6] * v[2] + a[7] * v[3]
+        // res[3] = a[8] * v[0] + a[9] * v[1] + a[10] * v[2] + a[11] * v[3]
+        // res[4] = a[12] * v[0] + a[13] * v[1] + a[14] * v[2] + a[15] * v[3]
         __m128 res = _mm_hadd_ps(sum01, sum23);
 
         // Store the result vector to the vector v pointer
         _mm_storeu_ps(result.v, res);
+        #else
+        // Base Rasterizer - Already optimized enough with unrolling
+        result[0] = a[0] * v[0] + a[1] * v[1] + a[2] * v[2] + a[3] * v[3];
+        result[1] = a[4] * v[0] + a[5] * v[1] + a[6] * v[2] + a[7] * v[3];
+        result[2] = a[8] * v[0] + a[9] * v[1] + a[10] * v[2] + a[11] * v[3];
+        result[3] = a[12] * v[0] + a[13] * v[1] + a[14] * v[2] + a[15] * v[3];
+        #endif
         return result;
     }
 
@@ -79,49 +90,17 @@ public:
     // Returns the resulting matrix
     matrix operator*(const matrix& mx) const {
         matrix ret;
-
-        // Base Rasterizer
-        //for (int row = 0; row < 4; ++row) {
-        //    for (int col = 0; col < 4; ++col) {
-        //        ret.a[row * 4 + col] =
-        //            a[row * 4 + 0] * mx.a[0 * 4 + col] +
-        //            a[row * 4 + 1] * mx.a[1 * 4 + col] +
-        //            a[row * 4 + 2] * mx.a[2 * 4 + col] +
-        //            a[row * 4 + 3] * mx.a[3 * 4 + col];
-        //    }
-        //}
-
-        // Optimized - Unrolling & Hardcoding Results
-        //ret.a[0] = a[0] * mx.a[0] + a[1] * mx.a[4] + a[2] * mx.a[8] + a[3] * mx.a[12];
-        //ret.a[1] = a[0] * mx.a[1] + a[1] * mx.a[5] + a[2] * mx.a[9] + a[3] * mx.a[13];
-        //ret.a[2] = a[0] * mx.a[2] + a[1] * mx.a[6] + a[2] * mx.a[10] + a[3] * mx.a[14];
-        //ret.a[3] = a[0] * mx.a[3] + a[1] * mx.a[7] + a[2] * mx.a[11] + a[3] * mx.a[15];
-
-        //ret.a[4] = a[4] * mx.a[0] + a[5] * mx.a[4] + a[6] * mx.a[8] + a[7] * mx.a[12];
-        //ret.a[5] = a[4] * mx.a[1] + a[5] * mx.a[5] + a[6] * mx.a[9] + a[7] * mx.a[13];
-        //ret.a[6] = a[4] * mx.a[2] + a[5] * mx.a[6] + a[6] * mx.a[10] + a[7] * mx.a[14];
-        //ret.a[7] = a[4] * mx.a[3] + a[5] * mx.a[7] + a[6] * mx.a[11] + a[7] * mx.a[15];
-
-        //ret.a[8] = a[8] * mx.a[0] + a[9] * mx.a[4] + a[10] * mx.a[8] + a[11] * mx.a[12];
-        //ret.a[9] = a[8] * mx.a[1] + a[9] * mx.a[5] + a[10] * mx.a[9] + a[11] * mx.a[13];
-        //ret.a[10] = a[8] * mx.a[2] + a[9] * mx.a[6] + a[10] * mx.a[10] + a[11] * mx.a[14];
-        //ret.a[11] = a[8] * mx.a[3] + a[9] * mx.a[7] + a[10] * mx.a[11] + a[11] * mx.a[15];
-
-        //ret.a[12] = a[12] * mx.a[0] + a[13] * mx.a[4] + a[14] * mx.a[8] + a[15] * mx.a[12];
-        //ret.a[13] = a[12] * mx.a[1] + a[13] * mx.a[5] + a[14] * mx.a[9] + a[15] * mx.a[13];
-        //ret.a[14] = a[12] * mx.a[2] + a[13] * mx.a[6] + a[14] * mx.a[10] + a[15] * mx.a[14];
-        //ret.a[15] = a[12] * mx.a[3] + a[13] * mx.a[7] + a[14] * mx.a[11] + a[15] * mx.a[15];
-
-        // Optimized - AVX Multiplication (SIMD, using m128 registers (4 floats) instead of m256 (8 floats))
+        #if OPT_MATRIX_4X4MUL_AVX
+        // Optimisation - AVX Multiplication (SIMD, using m128 registers (4 floats))
         // Important: A x B != B x A
-        // Load the entirety of mx/right hand side matrix
+        // Load the entirety of mx/right-hand side matrix
         __m128 row_one = _mm_loadu_ps(&mx.m[0][0]);
         __m128 row_two = _mm_loadu_ps(&mx.m[1][0]);
         __m128 row_three = _mm_loadu_ps(&mx.m[2][0]);
         __m128 row_four = _mm_loadu_ps(&mx.m[3][0]);
 
         for (size_t i = 0; i < 4; i++) {
-            // Load x, y, z, and w components of this/left hand side matrix
+            // Load x, y, z, and w components of this/left-hand side matrix
             __m128 x = _mm_broadcast_ss(&m[i][0]);
             __m128 y = _mm_broadcast_ss(&m[i][1]);
             __m128 z = _mm_broadcast_ss(&m[i][2]);
@@ -134,7 +113,39 @@ public:
             // Store the result
             _mm_storeu_ps(&ret.m[i][0], _mm_add_ps(resA, resB));
         }
+        #elif OPT_MATRIX_UNROLLMUL
+        // Optimisation - Unrolling & Hardcoding Results
+        ret.a[0] = a[0] * mx.a[0] + a[1] * mx.a[4] + a[2] * mx.a[8] + a[3] * mx.a[12];
+        ret.a[1] = a[0] * mx.a[1] + a[1] * mx.a[5] + a[2] * mx.a[9] + a[3] * mx.a[13];
+        ret.a[2] = a[0] * mx.a[2] + a[1] * mx.a[6] + a[2] * mx.a[10] + a[3] * mx.a[14];
+        ret.a[3] = a[0] * mx.a[3] + a[1] * mx.a[7] + a[2] * mx.a[11] + a[3] * mx.a[15];
 
+        ret.a[4] = a[4] * mx.a[0] + a[5] * mx.a[4] + a[6] * mx.a[8] + a[7] * mx.a[12];
+        ret.a[5] = a[4] * mx.a[1] + a[5] * mx.a[5] + a[6] * mx.a[9] + a[7] * mx.a[13];
+        ret.a[6] = a[4] * mx.a[2] + a[5] * mx.a[6] + a[6] * mx.a[10] + a[7] * mx.a[14];
+        ret.a[7] = a[4] * mx.a[3] + a[5] * mx.a[7] + a[6] * mx.a[11] + a[7] * mx.a[15];
+
+        ret.a[8] = a[8] * mx.a[0] + a[9] * mx.a[4] + a[10] * mx.a[8] + a[11] * mx.a[12];
+        ret.a[9] = a[8] * mx.a[1] + a[9] * mx.a[5] + a[10] * mx.a[9] + a[11] * mx.a[13];
+        ret.a[10] = a[8] * mx.a[2] + a[9] * mx.a[6] + a[10] * mx.a[10] + a[11] * mx.a[14];
+        ret.a[11] = a[8] * mx.a[3] + a[9] * mx.a[7] + a[10] * mx.a[11] + a[11] * mx.a[15];
+
+        ret.a[12] = a[12] * mx.a[0] + a[13] * mx.a[4] + a[14] * mx.a[8] + a[15] * mx.a[12];
+        ret.a[13] = a[12] * mx.a[1] + a[13] * mx.a[5] + a[14] * mx.a[9] + a[15] * mx.a[13];
+        ret.a[14] = a[12] * mx.a[2] + a[13] * mx.a[6] + a[14] * mx.a[10] + a[15] * mx.a[14];
+        ret.a[15] = a[12] * mx.a[3] + a[13] * mx.a[7] + a[14] * mx.a[11] + a[15] * mx.a[15];
+        #else
+        // Base Rasterizer
+        for (int row = 0; row < 4; ++row) {
+            for (int col = 0; col < 4; ++col) {
+                ret.a[row * 4 + col] =
+                    a[row * 4 + 0] * mx.a[0 * 4 + col] +
+                    a[row * 4 + 1] * mx.a[1 * 4 + col] +
+                    a[row * 4 + 2] * mx.a[2 * 4 + col] +
+                    a[row * 4 + 3] * mx.a[3 * 4 + col];
+            }
+        }
+        #endif
         return ret;
     }
 
@@ -149,15 +160,8 @@ public:
         matrix m;
         m.zero();
 
-        // Base Rasterizer - Division is an expensive operation
-        //float tanHalfFov = std::tan(fov / 2.0f);
-        //m.a[0] = 1.0f / (aspect * tanHalfFov);
-        //m.a[5] = 1.0f / tanHalfFov;
-        //m.a[10] = -f / (f - n);
-        //m.a[11] = -(f * n) / (f - n);
-        //m.a[14] = -1.0f;
-        
-        // Optimized - Reduced Division Count
+        #if OPT_MATRIX_PERSPECTIVE_DIV
+        // Optimisation - Reduce the division count
         float tanHalfFov = std::tan(fov * 0.5f);
         float invAspectTanHalfFov = 1.f / (aspect * tanHalfFov);
         float zNorm = 1.f / (f - n);
@@ -166,8 +170,16 @@ public:
         m.a[5] = aspect * invAspectTanHalfFov;  // 1.f / tanHalfFov
         m.a[10] = -f * zNorm;                   // -f / (f - n)
         m.a[11] = -(f * n) * zNorm;             // -(f * n) / (f - n)
+        #else
+        // Base Rasterizer
+        float tanHalfFov = std::tan(fov / 2.0f);
+
+        m.a[0] = 1.0f / (aspect * tanHalfFov);
+        m.a[5] = 1.0f / tanHalfFov;
+        m.a[10] = -f / (f - n);
+        m.a[11] = -(f * n) / (f - n);
+        #endif
         m.a[14] = -1.f;
-       
         return m;
     }
 
@@ -176,9 +188,10 @@ public:
     // - tx, ty, tz: Translation amounts along the X, Y, and Z axes
     // Returns the translation matrix
     static matrix makeTranslation(float tx, float ty, float tz) {
-        // Optimized - Default constructor already sets to identity matrix
         matrix m;
-        // m.identity();
+        #if !OPT_MATRIX_DISABLE_REDUNDANT_IDENTITY_CALL
+            m.identity();
+        #endif
         m.a[3] = tx;
         m.a[7] = ty;
         m.a[11] = tz;
@@ -190,18 +203,25 @@ public:
     // - aRad: Rotation angle in radians
     // Returns the rotation matrix
     static matrix makeRotateZ(float aRad) {
-        // Optimized - Default constructor already sets to identity matrix
         matrix m;
-        // m.identity();
+        #if !OPT_MATRIX_DISABLE_REDUNDANT_IDENTITY_CALL
+            m.identity();
+        #endif
 
-        // Optimized - Store sin and cos to avoid multiple calculations
-        float sinA = std::sin(aRad);
-        float cosA = std::cos(aRad);
-
-        m.a[0] = cosA;
-        m.a[1] = -sinA;
-        m.a[4] = sinA;
-        m.a[5] = cosA;
+        #if OPT_MATRIX_TRIG_CALLS
+            // Optimisation - Store sin and cos to avoid multiple calculations
+            float sinA = std::sin(aRad);
+            float cosA = std::cos(aRad);
+            m.a[0] = cosA;
+            m.a[1] = -sinA;
+            m.a[4] = sinA;
+            m.a[5] = cosA;
+        #else
+            m.a[0] = std::cos(aRad);
+            m.a[1] = -std::sin(aRad);
+            m.a[4] = std::sin(aRad);
+            m.a[5] = std::cos(aRad);
+        #endif
         return m;
     }
 
@@ -210,18 +230,25 @@ public:
     // - aRad: Rotation angle in radians
     // Returns the rotation matrix
     static matrix makeRotateX(float aRad) {
-        // Optimized - Default constructor already sets to identity matrix
         matrix m;
-        // m.identity();
+        #if !OPT_MATRIX_DISABLE_REDUNDANT_IDENTITY_CALL
+            m.identity();
+        #endif
 
-        // Optimized - Store sin and cos to avoid multiple calculations
-        float sinA = std::sin(aRad);
-        float cosA = std::cos(aRad);
-
-        m.a[5] = cosA;
-        m.a[6] = -sinA;
-        m.a[9] = sinA;
-        m.a[10] = cosA;
+        #if OPT_MATRIX_TRIG_CALLS
+            // Optimisation - Store sin and cos to avoid multiple calculations
+            float sinA = std::sin(aRad);
+            float cosA = std::cos(aRad);
+            m.a[5] = cosA;
+            m.a[6] = -sinA;
+            m.a[9] = sinA;
+            m.a[10] = cosA;
+        #else
+            m.a[5] = std::cos(aRad);
+            m.a[6] = -std::sin(aRad);
+            m.a[9] = std::sin(aRad);
+            m.a[10] = std::cos(aRad);
+        #endif
         return m;
     }
 
@@ -230,18 +257,25 @@ public:
     // - aRad: Rotation angle in radians
     // Returns the rotation matrix
     static matrix makeRotateY(float aRad) {
-        // Optimized - Default constructor already sets to identity matrix
         matrix m;
-        // m.identity();
+        #if !OPT_MATRIX_DISABLE_REDUNDANT_IDENTITY_CALL
+            m.identity();
+        #endif
 
-        // Optimized - Store sin and cos to avoid multiple calculations
-        float sinA = std::sin(aRad);
-        float cosA = std::cos(aRad);
-
-        m.a[0] = cosA;
-        m.a[2] = sinA;
-        m.a[8] = -sinA;
-        m.a[10] = cosA;
+        #if OPT_MATRIX_TRIG_CALLS
+            // Optimisation - Store sin and cos to avoid multiple calculations
+            float sinA = std::sin(aRad);
+            float cosA = std::cos(aRad);
+            m.a[0] = cosA;
+            m.a[2] = sinA;
+            m.a[8] = -sinA;
+            m.a[10] = cosA;
+        #else
+            m.a[0] = std::cos(aRad);
+            m.a[2] = std::sin(aRad);
+            m.a[8] = -std::sin(aRad);
+            m.a[10] = std::cos(aRad);
+        #endif        
         return m;
     }
 
@@ -258,11 +292,12 @@ public:
     // - s: Scaling factor
     // Returns the scaling matrix
     static matrix makeScale(float s) {
-        // Optimized - Default constructor already sets to identity matrix
         matrix m;
-        // m.identity();
-
-        s = std::max(s, 0.01f);  // Ensure scaling factor is not too small
+        #if !OPT_MATRIX_DISABLE_REDUNDANT_IDENTITY_CALL
+            m.identity();
+        #endif
+        // Ensure scaling factor is not too small
+        s = std::max(s, 0.01f);
         m.a[0] = s;
         m.a[5] = s;
         m.a[10] = s;
