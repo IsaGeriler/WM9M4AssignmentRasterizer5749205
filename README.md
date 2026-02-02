@@ -1,5 +1,8 @@
 # WM9M4AssignmentRasterizer5749205
 ## Scene One
+
+![SceneOneRasterizer](https://github.com/user-attachments/assets/549b0258-30fd-46ca-93db-9c35bf76e352)
+
 ### Performance Comparison: Base Rasteriser vs. Optimised Rasteriser
 
 | Iteration | Base Rasterizer (ms) | Optimised Scene 1 (ms) | Improvement (%) |
@@ -24,6 +27,8 @@
 ## Scene Two
 ### Performance Comparison: Base Rasteriser vs. Optimised Rasteriser
 
+![SceneTwoRasterizer](https://github.com/user-attachments/assets/720040c3-6398-421f-8289-795ef4b8a22d)
+
 | Iteration | Base Rasterizer (ms) | Optimised Scene 2 (ms) | Improvement (%) |
 | :--- | :--- | :--- | :--- |
 | 1 | 1995.87 | 1410.50 | ~29.33% |
@@ -42,3 +47,7 @@
 | 14 | 2089.59 | 1363.51 | ~34.75% |
 | 15 | 2083.39 | 1356.31 | ~34.90% |
 | **Average** | **2109.58** | **1373.96** | **~34.87%** |
+
+## Scene Three
+### Performance Comparison: Base Rasteriser vs. Optimised Rasteriser
+*Note: Coming soon... thinking about a good scene that will break the base rasteriser, and show the true power of optimising & MT...*
