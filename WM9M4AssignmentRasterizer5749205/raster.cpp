@@ -262,15 +262,16 @@ static void scene2() {
 // These scene will be written to showcase different parallel issues and optimisations
 // No input variables
 static void scene3() {
-
+    // Many Lights... Many Cubes... Many Spheres...
+    // Find a way to showcase AoS vs. SoA and much more...
 }
 
 // Entry point of the application
 // No input variables
 int main() {
     // Uncomment the desired scene function to run
-    scene1();
-    //scene2();
+    //scene1();
+    scene2();
     //scene3();
     //sceneTest();
     return 0;

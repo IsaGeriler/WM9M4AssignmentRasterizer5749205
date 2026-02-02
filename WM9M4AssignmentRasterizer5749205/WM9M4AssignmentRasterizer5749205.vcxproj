@@ -130,6 +130,7 @@
     <ClInclude Include="light.h" />
     <ClInclude Include="matrix.h" />
     <ClInclude Include="mesh.h" />
+    <ClInclude Include="OptimisationProfiles.h" />
     <ClInclude Include="renderer.h" />
     <ClInclude Include="RNG.h" />
     <ClInclude Include="triangle.h" />
