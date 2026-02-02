@@ -81,14 +81,18 @@ public:
         //beta = getC(vec2D(v[1].p), vec2D(v[2].p), p) / area;
         //gamma = getC(vec2D(v[2].p), vec2D(v[0].p), p) / area;
 
-        // Optimized - Inverse Area (1 Division, 3 Multiplication)
-        // Optimized - Since alpha + beta + gamma <= 1; let alpha = 1 - beta - gamma
+        // Optimized - Use Inverse Area (1 Division, 3 Multiplication)
+        // Optimized - Instead of OR gates; breakdown the steps after each edge function
         float invArea = 1.f / area;
-        beta = getC(vec2D(v[1].p), vec2D(v[2].p), p) * invArea;
-        gamma = getC(vec2D(v[2].p), vec2D(v[0].p), p) * invArea;
-        alpha = 1.f - beta - gamma;
+        alpha = getC(vec2D(v[0].p), vec2D(v[1].p), p) * invArea;
+        if (alpha < 0.f) return false;
 
-        if (alpha < 0.f || beta < 0.f || gamma < 0.f) return false;
+        beta = getC(vec2D(v[1].p), vec2D(v[2].p), p) * invArea;
+        if (beta < 0.f) return false;
+
+        gamma = getC(vec2D(v[2].p), vec2D(v[0].p), p) * invArea;       
+        if (gamma < 0.f) return false;
+
         return true;
     }
 
