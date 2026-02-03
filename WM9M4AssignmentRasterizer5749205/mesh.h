@@ -16,11 +16,56 @@ struct Vertex {
 };
 
 // Vertex as SoA (Structure of Arrays)
-//struct VertexSoA {
-//    std::vector<vec4> p;
-//    std::vector<vec4> normal;
-//    std::vector<colour> rgb;
-//};
+struct VertexSoA {
+    // Position components of the vertex in 3D space
+    std::vector<float> px;
+    std::vector<float> py;
+    std::vector<float> pz;
+    std::vector<float> pw;
+
+    // Normal vector components for the vertex
+    std::vector<float> nx;
+    std::vector<float> ny;
+    std::vector<float> nz;
+    std::vector<float> nw;
+
+    // Color components of the vertex
+    std::vector<float> cr;
+    std::vector<float> cg;
+    std::vector<float> cb;
+
+    // Methods to emplace position vector, normal vector, and colour
+    void emplace_back_p(const vec4& v) {
+        px.emplace_back(v.x);
+        py.emplace_back(v.y);
+        pz.emplace_back(v.z);
+        pw.emplace_back(v.w);
+    }
+
+    void emplace_back_normal(const vec4& n) {
+        nx.emplace_back(n.x);
+        ny.emplace_back(n.y);
+        nz.emplace_back(n.z);
+        nw.emplace_back(n.w);
+    }
+
+    void emplace_back_colour(colour c) {
+        cr.emplace_back(c[c.RED]);
+        cg.emplace_back(c[c.GREEN]);
+        cb.emplace_back(c[c.BLUE]);
+    }
+
+    void clear_all() {
+        // Clear position vectors
+        px.clear(); py.clear(); pz.clear(); pw.clear();
+
+        // Clear normal vectors
+        nx.clear(); ny.clear(); nz.clear(); nw.clear();
+
+        // Clear colours
+        cr.clear(); cg.clear(); cb.clear();
+    }
+};
 
 // Stores indices of vertices that form a triangle in a mesh
 struct triIndices {
@@ -72,9 +117,9 @@ public:
         vertices.push_back(v);
         
         // SoA Optimization Impl.
-        //verticesSoA.p.emplace_back(vertex);
-        //verticesSoA.normal.emplace_back(normal);
-        //verticesSoA.rgb.emplace_back(col);
+        //verticesSoA.emplace_back_p(vertex);
+        //verticesSoA.emplace_back_normal(normal);
+        //verticesSoA.emplace_back_colour(col);
     }
 
     // Add a triangle to the mesh
@@ -94,11 +139,12 @@ public:
         }
 
         // SoA Impl. Optimisation
-        //size_t verticesSoASize = verticesSoA.p.size();
-        //std::cout << "Vertices and Normals (SoA):\n";
-        //for (size_t i = 0; i < verticesSoASize; ++i) {
-        //    std::cout << i << ": Vertex (" << verticesSoA.p[i][0] << ", " << verticesSoA.p[i][1] << ", " << verticesSoA.p[i][2] << ", " << verticesSoA.p[i][3] << ")"
-        //        << " Normal (" << verticesSoA.normal[i][0] << ", " << verticesSoA.normal[i][1] << ", " << verticesSoA.normal[i][2] << ", " << verticesSoA.normal[i][3] << ")\n";
+        //size_t verticesSizeSoA = verticesSoA.px.size();
+        //std::cout << "Vertices and Normals:\n";
+        //for (size_t i = 0; i < verticesSizeSoA; ++i) {
+        //    std::cout << i 
+        //        << ": Vertex (" << verticesSoA.px[i] << ", " << verticesSoA.py[i] << ", " << verticesSoA.pz[i] << ", " << verticesSoA.pw[i]
+        //        << ") Normal (" << verticesSoA.nx[i] << ", " << verticesSoA.ny[i] << ", " << verticesSoA.nz[i] << ", " << verticesSoA.nw[i] << ")\n";
         //}
 
         std::cout << "\nTriangles:\n";
@@ -115,9 +161,7 @@ public:
     static Mesh makeRectangle(float x1, float y1, float x2, float y2) {
         Mesh mesh;
         mesh.vertices.clear();
-        //mesh.verticesSoA.p.clear();
-        //mesh.verticesSoA.normal.clear();
-        //mesh.verticesSoA.rgb.clear();
+        // mesh.verticesSoA.clear_all();
         mesh.triangles.clear();
 
         // Define the four corners of the rectangle
@@ -151,6 +195,10 @@ public:
     // Returns a Mesh object representing the cube
     static Mesh makeCube(float size) {
         Mesh mesh;
+        mesh.vertices.clear();
+        // mesh.verticesSoA.clear_all();
+        mesh.triangles.clear();
+
         // float halfSize = size / 2.0f;
         float halfSize = size * 0.5f;  // Division is an expensive operation
 
@@ -204,7 +252,7 @@ public:
             mesh.addTriangle(baseIndex, baseIndex + 3, baseIndex + 2);
         }
         return mesh;
-    } 
+    }
 
     // Generate a sphere mesh
     // Input Variables:
@@ -219,9 +267,7 @@ public:
         }
 
         mesh.vertices.clear();
-        //mesh.verticesSoA.p.clear();
-        //mesh.verticesSoA.normal.clear();
-        //mesh.verticesSoA.rgb.clear();
+        //mesh.clear_all()
         mesh.triangles.clear();
 
         // Store pi, and inverse latitudeDivisions & longitudeDivisions

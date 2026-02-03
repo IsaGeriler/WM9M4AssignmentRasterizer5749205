@@ -7,6 +7,7 @@
 #include "colour.h"
 #include "light.h"
 #include "mesh.h"
+#include "OptimisationProfiles.h"
 #include "renderer.h"
 
 // Simple support class for a 2D vector
@@ -41,6 +42,7 @@ public:
 // Class representing a triangle for rendering purposes
 class triangle {
     Vertex v[3];       // Vertices of the triangle
+    float signedArea;  // Signed area of the triangle (for Backface Culling)
     float area;        // Area of the triangle
     colour col[3];     // Colors for each vertex of the triangle
 
@@ -56,7 +58,9 @@ public:
         // Calculate the 2D area of the triangle
         vec2D e1 = vec2D(v[1].p - v[0].p);
         vec2D e2 = vec2D(v[2].p - v[0].p);
-        area = std::fabs(e1.x * e2.y - e1.y * e2.x);
+        
+        signedArea = e1.x * e2.y - e1.y * e2.x;
+        area = std::fabs(signedArea);
     }
 
     // Helper function to compute the cross product for barycentric coordinates
@@ -72,27 +76,41 @@ public:
     // Compute barycentric coordinates for a given point
     // Input Variables:
     // - p: Point to check within the triangle
+    // - invArea: Inverse area of the triangle (to avoid multiple calculations inside this)
     // Output Variables:
     // - alpha, beta, gamma: Barycentric coordinates of the point
     // Returns true if the point is inside the triangle, false otherwise
-    bool getCoordinates(vec2D p, float& alpha, float& beta, float& gamma) {
-        // Base Rasterizer - 3 Divisions
-        //alpha = getC(vec2D(v[0].p), vec2D(v[1].p), p) / area;
-        //beta = getC(vec2D(v[1].p), vec2D(v[2].p), p) / area;
-        //gamma = getC(vec2D(v[2].p), vec2D(v[0].p), p) / area;
-
-        // Optimized - Use Inverse Area (1 Division, 3 Multiplication)
-        // Optimized - Instead of OR gates; breakdown the steps after each edge function
-        float invArea = 1.f / area;
-        alpha = getC(vec2D(v[0].p), vec2D(v[1].p), p) * invArea;
-        if (alpha < 0.f) return false;
-
-        beta = getC(vec2D(v[1].p), vec2D(v[2].p), p) * invArea;
-        if (beta < 0.f) return false;
-
-        gamma = getC(vec2D(v[2].p), vec2D(v[0].p), p) * invArea;       
-        if (gamma < 0.f) return false;
-
+    bool getCoordinates(vec2D p, float& alpha, float& beta, float& gamma, float area) {
+        #if OPT_TRIANGLE_INV_AREA && OPT_TRIANGLE_SPLIT_BARYCENTRIC_CHECKS
+            // Optimisation - Use Inverse Area (1 Division, 3 Multiplication)
+            // Optimisation - Instead of OR gates in one if-statement; breakdown the steps after each edge function
+            alpha = getC(vec2D(v[0].p), vec2D(v[1].p), p) * area;
+            if (alpha < 0.f) return false;
+            beta = getC(vec2D(v[1].p), vec2D(v[2].p), p) * area;
+            if (beta < 0.f) return false;
+            gamma = getC(vec2D(v[2].p), vec2D(v[0].p), p) * area;
+            if (gamma < 0.f) return false;
+        #elif OPT_TRIANGLE_INV_AREA && !OPT_TRIANGLE_SPLIT_BARYCENTRIC_CHECKS
+            // Optimisation - Use Inverse Area (1 Division, 3 Multiplication)
+            alpha = getC(vec2D(v[0].p), vec2D(v[1].p), p) * area;
+            beta = getC(vec2D(v[1].p), vec2D(v[2].p), p) * area;
+            gamma = getC(vec2D(v[2].p), vec2D(v[0].p), p) * area;
+            if (alpha < 0.f || beta < 0.f || gamma < 0.f) return false;
+        #elif !OPT_TRIANGLE_INV_AREA && OPT_TRIANGLE_SPLIT_BARYCENTRIC_CHECKS
+            // Optimisation - Instead of OR gates in one if-statement; breakdown the steps after each edge function
+            alpha = getC(vec2D(v[0].p), vec2D(v[1].p), p) / area;
+            if (alpha < 0.f) return false;
+            beta = getC(vec2D(v[1].p), vec2D(v[2].p), p) / area;
+            if (beta < 0.f) return false;
+            gamma = getC(vec2D(v[2].p), vec2D(v[0].p), p) / area;
+            if (gamma < 0.f) return false;
+        #else
+            // Base Rasterizer - 3 Divisions, OR gates in one if-statement
+            alpha = getC(vec2D(v[0].p), vec2D(v[1].p), p) / area;
+            beta = getC(vec2D(v[1].p), vec2D(v[2].p), p) / area;
+            gamma = getC(vec2D(v[2].p), vec2D(v[0].p), p) / area;
+            if (alpha < 0.f || beta < 0.f || gamma < 0.f) return false;
+        #endif
         return true;
     }
 
@@ -120,59 +138,52 @@ public:
         // Skip very small triangles
         if (area < 1.f) return;
 
+        #if OPT_TRIANGLE_BACKFACE_CULLING
+            if (signedArea <= 0.f) return;
+        #endif
+
+        #if OPT_TRIANGLE_INV_AREA
+            area = 1.f / area;
+        #endif
+        // float invArea = 1.f / area;
+
         // Iterate over the bounding box and check each pixel
         for (int y = (int)(minV.y); y < (int)ceil(maxV.y); y++) {
-            for (int x = (int)(minV.x); x < (int)ceil(maxV.x); x++) {
-                // Base Rasterizer
-                //float alpha, beta, gamma;
-
-                // Check if the pixel lies inside the triangle
-                //if (getCoordinates(vec2D((float)x, (float)y), alpha, beta, gamma)) {
-                //    // Interpolate color, depth, and normals
-                //    colour c = interpolate(beta, gamma, alpha, v[0].rgb, v[1].rgb, v[2].rgb);
-                //    c.clampColour();
-                //    float depth = interpolate(beta, gamma, alpha, v[0].p[2], v[1].p[2], v[2].p[2]);
-                //    vec4 normal = interpolate(beta, gamma, alpha, v[0].normal, v[1].normal, v[2].normal);
-                //    normal.normalise();
-
-                //    // Perform Z-buffer test and apply shading
-                //    if (renderer.zbuffer(x, y) > depth && depth > 0.001f) {
-                //        // typical shader begin
-                //        L.omega_i.normalise();
-                //        float dot = std::max(vec4::dot(L.omega_i, normal), 0.0f);
-                //        colour a = (c * kd) * (L.L * dot) + (L.ambient * ka); // using kd instead of ka for ambient
-                //        // typical shader end
-                //        unsigned char r, g, b;
-                //        a.toRGB(r, g, b);
-                //        renderer.canvas.draw(x, y, r, g, b);
-                //        renderer.zbuffer(x, y) = depth;
-                //    }
-                //}
-                
+            for (int x = (int)(minV.x); x < (int)ceil(maxV.x); x++) {                
                 float alpha, beta, gamma;
 
                 // Check if the pixel lies inside the triangle
-                if (getCoordinates(vec2D((float)x, (float)y), alpha, beta, gamma)) {
-                    // Optimized Rasterizer - color and normal interpolations after depth check
+                if (getCoordinates(vec2D((float)x, (float)y), alpha, beta, gamma, area)) {
                     // Interpolate depth
                     float depth = interpolate(beta, gamma, alpha, v[0].p[2], v[1].p[2], v[2].p[2]);
+
+                    #if !OPT_TRIANGLE_EARLY_DEPTH_CHECK
+                        // Interpolate color
+                        colour c = interpolate(beta, gamma, alpha, v[0].rgb, v[1].rgb, v[2].rgb);
+                        c.clampColour();
+                        // Interpolate normals
+                        vec4 normal = interpolate(beta, gamma, alpha, v[0].normal, v[1].normal, v[2].normal);
+                        normal.normalise();
+                    #endif
 
                     // Perform Z-buffer test and then apply shading
                     if (renderer.zbuffer(x, y) > depth && depth > 0.001f) {
                         // Update the buffer
                         renderer.zbuffer(x, y) = depth;
 
-                        // Interpolate color
-                        colour c = interpolate(beta, gamma, alpha, v[0].rgb, v[1].rgb, v[2].rgb);
-                        c.clampColour();
-
-                        // Interpolate normals
-                        vec4 normal = interpolate(beta, gamma, alpha, v[0].normal, v[1].normal, v[2].normal);
-                        normal.normalise();
+                        #if OPT_TRIANGLE_EARLY_DEPTH_CHECK
+                            // Interpolate color
+                            colour c = interpolate(beta, gamma, alpha, v[0].rgb, v[1].rgb, v[2].rgb);
+                            c.clampColour();
+                            // Interpolate normals
+                            vec4 normal = interpolate(beta, gamma, alpha, v[0].normal, v[1].normal, v[2].normal);
+                            normal.normalise();
+                        #endif
 
                         // typical shader begin
-                        // Base Rasterizer - Normalize light as iteration times... (change at raster.cpp)
-                        // L.omega_i.normalise();
+                        #if !OPT_TRIANGLE_EARLY_LIGHT_NORM
+                            L.omega_i.normalise();
+                        #endif
                         float dot = std::max(vec4::dot(L.omega_i, normal), 0.f);
                         colour a = (c * kd) * (L.L * dot) + (L.ambient * ka);  // using kd instead of ka for ambient
 

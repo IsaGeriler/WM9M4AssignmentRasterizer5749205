@@ -22,8 +22,9 @@
 #define OPT_VEC4_DISABLE_REDUNDANT_DIVS true
 #define OPT_VEC4_FAST_INV_SQRT false
 
-// Triangle Optimisation
-
-// Light Optimisation
-
-// Mesh Optimisation
+// Triangle Class Optimisation
+#define OPT_TRIANGLE_BACKFACE_CULLING true
+#define OPT_TRIANGLE_INV_AREA true
+#define OPT_TRIANGLE_SPLIT_BARYCENTRIC_CHECKS true
+#define OPT_TRIANGLE_EARLY_DEPTH_CHECK true
+#define OPT_TRIANGLE_EARLY_LIGHT_NORM true

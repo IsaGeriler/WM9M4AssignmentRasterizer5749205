@@ -11,12 +11,12 @@
 class Renderer {
     #if OPT_RENDERER_DISABLE_REDUNDANT_DIVS
         // Optimized - Drop the unneccessary divisions
-        float fov = std::numbers::pi_v<float> *0.5f;  // Field of view in radians (90.f/180.f = 0.5f)
-        float aspect = 1.3333334f;					  // Aspect ratio of the canvas (1024.f/768.f = 4.f/3.f)
+        float fov = std::numbers::pi_v<float> * 0.5f;  // Field of view in radians (90.f/180.f = 0.5f)
+        float aspect = 1.3333334f;					   // Aspect ratio of the canvas (1024.f/768.f = 4.f/3.f)
     #else
         // Base Rasterizer - 2 Unnecessary Divisions
-        float fov = 90.0f * M_PI / 180.0f;  // Field of view in radians (converted from degrees)
-        float aspect = 4.0f / 3.0f;         // Aspect ratio of the canvas (width/height)
+        float fov = 90.0f * std::numbers::pi_v<float> / 180.0f;  // Field of view in radians (converted from degrees)
+        float aspect = 4.0f / 3.0f;                              // Aspect ratio of the canvas (width/height)
     #endif
     float n = 0.1f;   // Near clipping plane distance
     float f = 100.f;  // Far clipping plane distance

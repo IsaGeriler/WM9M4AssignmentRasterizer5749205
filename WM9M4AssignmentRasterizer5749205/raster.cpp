@@ -1,6 +1,3 @@
-//#define _USE_MATH_DEFINES
-//#include <cmath>
-
 #include <algorithm>
 #include <iostream>
 #include <numbers>
@@ -26,8 +23,10 @@ static void render(Renderer& renderer, Mesh* mesh, matrix& camera, Light& L) {
     // Combine perspective, camera, and world transformations for the mesh
     matrix p = renderer.perspective * camera * mesh->world;
 
-    // Optimisation - Normalize the light only once, as the direction is fixed!
-    L.omega_i.normalise();
+    #if OPT_TRIANGLE_EARLY_LIGHT_NORM
+        // Optimisation - Normalize the light only once, as the direction is fixed!
+        L.omega_i.normalise();
+    #endif
 
     // Iterate through all triangles in the mesh
     for (triIndices& ind : mesh->triangles) {
@@ -270,8 +269,8 @@ static void scene3() {
 // No input variables
 int main() {
     // Uncomment the desired scene function to run
-    scene1();
-    //scene2();
+    //scene1();
+    scene2();
     //scene3();
     //sceneTest();
     return 0;
