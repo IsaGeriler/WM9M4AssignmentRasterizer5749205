@@ -43,43 +43,43 @@ public:
     vec4 operator*(const vec4& v) const {
         vec4 result;
         #if OPT_MATRIX_VECMUL_AVX
-        // Optimisation - AVX Multiplication (SIMD, using m128 registers (4 floats))
-        // Load in the vector to the m128 register
-        __m128 vec = _mm_loadu_ps(v.v);
+            // Optimisation - AVX Multiplication (SIMD, using m128 registers (4 floats))
+            // Load in the vector to the m128 register
+            __m128 vec = _mm_loadu_ps(v.v);
 
-        // Load the matrix and multiply it with the vector components
-        __m128 m0 = _mm_mul_ps(_mm_loadu_ps(&a[0]), vec);   // a[0] * v[0], a[1] * v[1], a[2] * v[2], a[3] * v[3]
-        __m128 m1 = _mm_mul_ps(_mm_loadu_ps(&a[4]), vec);   // a[4] * v[0], a[5] * v[1], a[6] * v[2], a[7] * v[3]
-        __m128 m2 = _mm_mul_ps(_mm_loadu_ps(&a[8]), vec);   // a[8] * v[0], a[9] * v[1], a[10] * v[2], a[11] * v[3]
-        __m128 m3 = _mm_mul_ps(_mm_loadu_ps(&a[12]), vec);  // a[12] * v[0], a[13] * v[1], a[14] * v[2], a[15] * v[3]
+            // Load the matrix and multiply it with the vector components
+            __m128 m0 = _mm_mul_ps(_mm_loadu_ps(&a[0]), vec);   // a[0] * v[0], a[1] * v[1], a[2] * v[2], a[3] * v[3]
+            __m128 m1 = _mm_mul_ps(_mm_loadu_ps(&a[4]), vec);   // a[4] * v[0], a[5] * v[1], a[6] * v[2], a[7] * v[3]
+            __m128 m2 = _mm_mul_ps(_mm_loadu_ps(&a[8]), vec);   // a[8] * v[0], a[9] * v[1], a[10] * v[2], a[11] * v[3]
+            __m128 m3 = _mm_mul_ps(_mm_loadu_ps(&a[12]), vec);  // a[12] * v[0], a[13] * v[1], a[14] * v[2], a[15] * v[3]
 
-        // Horizontal Add Step (and breakdown in comments)
-        // a[0] * v[0] + a[1] * v[1]
-        // a[2] * v[2] + a[3] * v[3]
-        // a[4] * v[0] + a[5] * v[1]
-        // a[6] * v[2] + a[7] * v[3]
-        __m128 sum01 = _mm_hadd_ps(m0, m1);
+            // Horizontal Add Step (and breakdown in comments)
+            // a[0] * v[0] + a[1] * v[1]
+            // a[2] * v[2] + a[3] * v[3]
+            // a[4] * v[0] + a[5] * v[1]
+            // a[6] * v[2] + a[7] * v[3]
+            __m128 sum01 = _mm_hadd_ps(m0, m1);
 
-        // a[8] * v[0] + a[9] * v[1]
-        // a[10] * v[2] + a[11] * v[3]
-        // a[12] * v[0] + a[13] * v[1]
-        // a[14] * v[2] + a[15] * v[3]
-        __m128 sum23 = _mm_hadd_ps(m2, m3);
+            // a[8] * v[0] + a[9] * v[1]
+            // a[10] * v[2] + a[11] * v[3]
+            // a[12] * v[0] + a[13] * v[1]
+            // a[14] * v[2] + a[15] * v[3]
+            __m128 sum23 = _mm_hadd_ps(m2, m3);
 
-        // res[0] = a[0] * v[0] + a[1] * v[1] + a[2] * v[2] + a[3] * v[3]
-        // res[1] = a[4] * v[0] + a[5] * v[1] + a[6] * v[2] + a[7] * v[3]
-        // res[3] = a[8] * v[0] + a[9] * v[1] + a[10] * v[2] + a[11] * v[3]
-        // res[4] = a[12] * v[0] + a[13] * v[1] + a[14] * v[2] + a[15] * v[3]
-        __m128 res = _mm_hadd_ps(sum01, sum23);
+            // res[0] = a[0] * v[0] + a[1] * v[1] + a[2] * v[2] + a[3] * v[3]
+            // res[1] = a[4] * v[0] + a[5] * v[1] + a[6] * v[2] + a[7] * v[3]
+            // res[3] = a[8] * v[0] + a[9] * v[1] + a[10] * v[2] + a[11] * v[3]
+            // res[4] = a[12] * v[0] + a[13] * v[1] + a[14] * v[2] + a[15] * v[3]
+            __m128 res = _mm_hadd_ps(sum01, sum23);
 
-        // Store the result vector to the vector v pointer
-        _mm_storeu_ps(result.v, res);
+            // Store the result vector to the vector v pointer
+            _mm_storeu_ps(result.v, res);
         #else
-        // Base Rasterizer - Already optimized enough with unrolling
-        result[0] = a[0] * v[0] + a[1] * v[1] + a[2] * v[2] + a[3] * v[3];
-        result[1] = a[4] * v[0] + a[5] * v[1] + a[6] * v[2] + a[7] * v[3];
-        result[2] = a[8] * v[0] + a[9] * v[1] + a[10] * v[2] + a[11] * v[3];
-        result[3] = a[12] * v[0] + a[13] * v[1] + a[14] * v[2] + a[15] * v[3];
+            // Base Rasterizer - Already optimized enough with unrolling
+            result[0] = a[0] * v[0] + a[1] * v[1] + a[2] * v[2] + a[3] * v[3];
+            result[1] = a[4] * v[0] + a[5] * v[1] + a[6] * v[2] + a[7] * v[3];
+            result[2] = a[8] * v[0] + a[9] * v[1] + a[10] * v[2] + a[11] * v[3];
+            result[3] = a[12] * v[0] + a[13] * v[1] + a[14] * v[2] + a[15] * v[3];
         #endif
         return result;
     }
@@ -91,60 +91,60 @@ public:
     matrix operator*(const matrix& mx) const {
         matrix ret;
         #if OPT_MATRIX_4X4MUL_AVX
-        // Optimisation - AVX Multiplication (SIMD, using m128 registers (4 floats))
-        // Important: A x B != B x A
-        // Load the entirety of mx/right-hand side matrix
-        __m128 row_one = _mm_loadu_ps(&mx.m[0][0]);
-        __m128 row_two = _mm_loadu_ps(&mx.m[1][0]);
-        __m128 row_three = _mm_loadu_ps(&mx.m[2][0]);
-        __m128 row_four = _mm_loadu_ps(&mx.m[3][0]);
+            // Optimisation - AVX Multiplication (SIMD, using m128 registers (4 floats))
+            // Important: A x B != B x A
+            // Load the entirety of mx/right-hand side matrix
+            __m128 row_one = _mm_loadu_ps(&mx.m[0][0]);
+            __m128 row_two = _mm_loadu_ps(&mx.m[1][0]);
+            __m128 row_three = _mm_loadu_ps(&mx.m[2][0]);
+            __m128 row_four = _mm_loadu_ps(&mx.m[3][0]);
 
-        for (size_t i = 0; i < 4; i++) {
-            // Load x, y, z, and w components of this/left-hand side matrix
-            __m128 x = _mm_broadcast_ss(&m[i][0]);
-            __m128 y = _mm_broadcast_ss(&m[i][1]);
-            __m128 z = _mm_broadcast_ss(&m[i][2]);
-            __m128 w = _mm_broadcast_ss(&m[i][3]);
+            for (size_t i = 0; i < 4; i++) {
+                // Load x, y, z, and w components of this/left-hand side matrix
+                __m128 x = _mm_broadcast_ss(&m[i][0]);
+                __m128 y = _mm_broadcast_ss(&m[i][1]);
+                __m128 z = _mm_broadcast_ss(&m[i][2]);
+                __m128 w = _mm_broadcast_ss(&m[i][3]);
 
-            // Calculate Dot Products
-            __m128 resA = _mm_fmadd_ps(x, row_one, _mm_mul_ps(y, row_two));
-            __m128 resB = _mm_fmadd_ps(z, row_three, _mm_mul_ps(w, row_four));
+                // Calculate Dot Products
+                __m128 resA = _mm_fmadd_ps(x, row_one, _mm_mul_ps(y, row_two));
+                __m128 resB = _mm_fmadd_ps(z, row_three, _mm_mul_ps(w, row_four));
 
-            // Store the result
-            _mm_storeu_ps(&ret.m[i][0], _mm_add_ps(resA, resB));
-        }
-        #elif OPT_MATRIX_UNROLLMUL
-        // Optimisation - Unrolling & Hardcoding Results
-        ret.a[0] = a[0] * mx.a[0] + a[1] * mx.a[4] + a[2] * mx.a[8] + a[3] * mx.a[12];
-        ret.a[1] = a[0] * mx.a[1] + a[1] * mx.a[5] + a[2] * mx.a[9] + a[3] * mx.a[13];
-        ret.a[2] = a[0] * mx.a[2] + a[1] * mx.a[6] + a[2] * mx.a[10] + a[3] * mx.a[14];
-        ret.a[3] = a[0] * mx.a[3] + a[1] * mx.a[7] + a[2] * mx.a[11] + a[3] * mx.a[15];
-
-        ret.a[4] = a[4] * mx.a[0] + a[5] * mx.a[4] + a[6] * mx.a[8] + a[7] * mx.a[12];
-        ret.a[5] = a[4] * mx.a[1] + a[5] * mx.a[5] + a[6] * mx.a[9] + a[7] * mx.a[13];
-        ret.a[6] = a[4] * mx.a[2] + a[5] * mx.a[6] + a[6] * mx.a[10] + a[7] * mx.a[14];
-        ret.a[7] = a[4] * mx.a[3] + a[5] * mx.a[7] + a[6] * mx.a[11] + a[7] * mx.a[15];
-
-        ret.a[8] = a[8] * mx.a[0] + a[9] * mx.a[4] + a[10] * mx.a[8] + a[11] * mx.a[12];
-        ret.a[9] = a[8] * mx.a[1] + a[9] * mx.a[5] + a[10] * mx.a[9] + a[11] * mx.a[13];
-        ret.a[10] = a[8] * mx.a[2] + a[9] * mx.a[6] + a[10] * mx.a[10] + a[11] * mx.a[14];
-        ret.a[11] = a[8] * mx.a[3] + a[9] * mx.a[7] + a[10] * mx.a[11] + a[11] * mx.a[15];
-
-        ret.a[12] = a[12] * mx.a[0] + a[13] * mx.a[4] + a[14] * mx.a[8] + a[15] * mx.a[12];
-        ret.a[13] = a[12] * mx.a[1] + a[13] * mx.a[5] + a[14] * mx.a[9] + a[15] * mx.a[13];
-        ret.a[14] = a[12] * mx.a[2] + a[13] * mx.a[6] + a[14] * mx.a[10] + a[15] * mx.a[14];
-        ret.a[15] = a[12] * mx.a[3] + a[13] * mx.a[7] + a[14] * mx.a[11] + a[15] * mx.a[15];
-        #else
-        // Base Rasterizer
-        for (int row = 0; row < 4; ++row) {
-            for (int col = 0; col < 4; ++col) {
-                ret.a[row * 4 + col] =
-                    a[row * 4 + 0] * mx.a[0 * 4 + col] +
-                    a[row * 4 + 1] * mx.a[1 * 4 + col] +
-                    a[row * 4 + 2] * mx.a[2 * 4 + col] +
-                    a[row * 4 + 3] * mx.a[3 * 4 + col];
+                // Store the result
+                _mm_storeu_ps(&ret.m[i][0], _mm_add_ps(resA, resB));
             }
-        }
+        #elif OPT_MATRIX_UNROLLMUL
+            // Optimisation - Unrolling & Hardcoding Results
+            ret.a[0] = a[0] * mx.a[0] + a[1] * mx.a[4] + a[2] * mx.a[8] + a[3] * mx.a[12];
+            ret.a[1] = a[0] * mx.a[1] + a[1] * mx.a[5] + a[2] * mx.a[9] + a[3] * mx.a[13];
+            ret.a[2] = a[0] * mx.a[2] + a[1] * mx.a[6] + a[2] * mx.a[10] + a[3] * mx.a[14];
+            ret.a[3] = a[0] * mx.a[3] + a[1] * mx.a[7] + a[2] * mx.a[11] + a[3] * mx.a[15];
+
+            ret.a[4] = a[4] * mx.a[0] + a[5] * mx.a[4] + a[6] * mx.a[8] + a[7] * mx.a[12];
+            ret.a[5] = a[4] * mx.a[1] + a[5] * mx.a[5] + a[6] * mx.a[9] + a[7] * mx.a[13];
+            ret.a[6] = a[4] * mx.a[2] + a[5] * mx.a[6] + a[6] * mx.a[10] + a[7] * mx.a[14];
+            ret.a[7] = a[4] * mx.a[3] + a[5] * mx.a[7] + a[6] * mx.a[11] + a[7] * mx.a[15];
+
+            ret.a[8] = a[8] * mx.a[0] + a[9] * mx.a[4] + a[10] * mx.a[8] + a[11] * mx.a[12];
+            ret.a[9] = a[8] * mx.a[1] + a[9] * mx.a[5] + a[10] * mx.a[9] + a[11] * mx.a[13];
+            ret.a[10] = a[8] * mx.a[2] + a[9] * mx.a[6] + a[10] * mx.a[10] + a[11] * mx.a[14];
+            ret.a[11] = a[8] * mx.a[3] + a[9] * mx.a[7] + a[10] * mx.a[11] + a[11] * mx.a[15];
+
+            ret.a[12] = a[12] * mx.a[0] + a[13] * mx.a[4] + a[14] * mx.a[8] + a[15] * mx.a[12];
+            ret.a[13] = a[12] * mx.a[1] + a[13] * mx.a[5] + a[14] * mx.a[9] + a[15] * mx.a[13];
+            ret.a[14] = a[12] * mx.a[2] + a[13] * mx.a[6] + a[14] * mx.a[10] + a[15] * mx.a[14];
+            ret.a[15] = a[12] * mx.a[3] + a[13] * mx.a[7] + a[14] * mx.a[11] + a[15] * mx.a[15];
+        #else
+            // Base Rasterizer
+            for (int row = 0; row < 4; ++row) {
+                for (int col = 0; col < 4; ++col) {
+                    ret.a[row * 4 + col] =
+                        a[row * 4 + 0] * mx.a[0 * 4 + col] +
+                        a[row * 4 + 1] * mx.a[1 * 4 + col] +
+                        a[row * 4 + 2] * mx.a[2 * 4 + col] +
+                        a[row * 4 + 3] * mx.a[3 * 4 + col];
+                }
+            }
         #endif
         return ret;
     }
@@ -159,27 +159,28 @@ public:
     static matrix makePerspective(float fov, float aspect, float n, float f) {
         matrix m;
         m.zero();
-
         #if OPT_MATRIX_PERSPECTIVE_DIV
-        // Optimisation - Reduce the division count
-        float tanHalfFov = std::tan(fov * 0.5f);
-        float invAspectTanHalfFov = 1.f / (aspect * tanHalfFov);
-        float zNorm = 1.f / (f - n);
+            // Optimisation - Reduce the division count
+            float tanHalfFov = std::tan(fov * 0.5f);
+            float invAspectTanHalfFov = 1.f / (aspect * tanHalfFov);
+            float zNorm = 1.f / (f - n);
 
-        m.a[0] = invAspectTanHalfFov;           // 1.f / aspect * tanHalfFov
-        m.a[5] = aspect * invAspectTanHalfFov;  // 1.f / tanHalfFov
-        m.a[10] = -f * zNorm;                   // -f / (f - n)
-        m.a[11] = -(f * n) * zNorm;             // -(f * n) / (f - n)
+            // Assign calculations in the correct order
+            m.a[0] = invAspectTanHalfFov;           // 1.f / aspect * tanHalfFov
+            m.a[5] = aspect * invAspectTanHalfFov;  // 1.f / tanHalfFov
+            m.a[10] = -f * zNorm;                   // -f / (f - n)
+            m.a[11] = -(f * n) * zNorm;             // -(f * n) / (f - n)
         #else
-        // Base Rasterizer
-        float tanHalfFov = std::tan(fov / 2.0f);
+            // Base Rasterizer
+            float tanHalfFov = std::tan(fov / 2.0f);
 
-        m.a[0] = 1.0f / (aspect * tanHalfFov);
-        m.a[5] = 1.0f / tanHalfFov;
-        m.a[10] = -f / (f - n);
-        m.a[11] = -(f * n) / (f - n);
+            // Assign calculations in the correct order
+            m.a[0] = 1.0f / (aspect * tanHalfFov);
+            m.a[5] = 1.0f / tanHalfFov;
+            m.a[10] = -f / (f - n);
+            m.a[11] = -(f * n) / (f - n);
         #endif
-        m.a[14] = -1.f;
+        m.a[14] = -1.f;  // Same assignment in both conditions, no need for code-line duplications
         return m;
     }
 
@@ -192,9 +193,7 @@ public:
         #if !OPT_MATRIX_DISABLE_REDUNDANT_IDENTITY_CALL
             m.identity();
         #endif
-        m.a[3] = tx;
-        m.a[7] = ty;
-        m.a[11] = tz;
+        m.a[3] = tx; m.a[7] = ty; m.a[11] = tz;
         return m;
     }
 
@@ -212,6 +211,8 @@ public:
             // Optimisation - Store sin and cos to avoid multiple calculations
             float sinA = std::sin(aRad);
             float cosA = std::cos(aRad);
+
+            // Assign calculations in the correct order
             m.a[0] = cosA;
             m.a[1] = -sinA;
             m.a[4] = sinA;
@@ -239,6 +240,8 @@ public:
             // Optimisation - Store sin and cos to avoid multiple calculations
             float sinA = std::sin(aRad);
             float cosA = std::cos(aRad);
+
+            // Assign calculations in the correct order
             m.a[5] = cosA;
             m.a[6] = -sinA;
             m.a[9] = sinA;
@@ -266,6 +269,8 @@ public:
             // Optimisation - Store sin and cos to avoid multiple calculations
             float sinA = std::sin(aRad);
             float cosA = std::cos(aRad);
+
+            // Assign calculations in the correct order
             m.a[0] = cosA;
             m.a[2] = sinA;
             m.a[8] = -sinA;
@@ -296,11 +301,8 @@ public:
         #if !OPT_MATRIX_DISABLE_REDUNDANT_IDENTITY_CALL
             m.identity();
         #endif
-        // Ensure scaling factor is not too small
-        s = std::max(s, 0.01f);
-        m.a[0] = s;
-        m.a[5] = s;
-        m.a[10] = s;
+        s = std::max(s, 0.01f);  // Ensure scaling factor is not too small
+        m.a[0] = s; m.a[5] = s; m.a[10] = s;
         return m;
     }
 
@@ -308,49 +310,55 @@ public:
     // Returns an identity matrix
     static matrix makeIdentity() {
         matrix m;
-        // Base Rasterizer
-        //for (int i = 0; i < 4; ++i) {
-        //    for (int j = 0; j < 4; ++j) {
-        //        m.m[i][j] = (i == j) ? 1.0f : 0.0f;
-        //    }
-        //}
-
-        // Optimise - SIMD Zero, Diagonals One
-        m.zero();
-        m.a[0] = 1.f; m.a[5] = 1.f; m.a[10] = 1.f; m.a[15] = 1.f;
+        #if OPT_MATRIX_INITS
+            // Optimise - SIMD Zero, Diagonals One
+            m.zero();
+            m.a[0] = 1.f; m.a[5] = 1.f; m.a[10] = 1.f; m.a[15] = 1.f;
+        #else
+            // Base Rasterizer
+            for (int i = 0; i < 4; ++i) {
+                for (int j = 0; j < 4; ++j) {
+                    m.m[i][j] = (i == j) ? 1.0f : 0.0f;
+                }
+            }
+        #endif
         return m;
     }
 
 private:
     // Set all elements of the matrix to 0
     void zero() {
-        // Base Rasterizer
-        //for (unsigned int i = 0; i < 16; i++)
-        //    a[i] = 0.f;
+        #if OPT_MATRIX_INITS
+            // Optimization - SIMD
+            __m256 vzero = _mm256_setzero_ps();
+            size_t i = 0;
 
-        // Optimization - SIMD
-        __m256 vzero = _mm256_setzero_ps();
-        size_t i = 0;
+            for (; i + 7 < 16; i += 8)
+                _mm256_storeu_ps(&a[i], vzero);
 
-        for (; i + 7 < 16; i += 8)
-            _mm256_storeu_ps(&a[i], vzero);
-
-        // Handle remaining elements (if any left)
-        for (; i < 16; i++)
-            a[i] = 0.f;
+            // Handle remaining elements (if any left)
+            for (; i < 16; i++)
+                a[i] = 0.f;
+        #else
+            // Base Rasterizer
+            for (unsigned int i = 0; i < 16; i++)
+                a[i] = 0.f;
+        #endif
     }
 
     // Set the matrix as an identity matrix
     void identity() {
-        // Base Rasterizer
-        //for (int i = 0; i < 4; ++i) {
-        //    for (int j = 0; j < 4; ++j) {
-        //        m[i][j] = (i == j) ? 1.0f : 0.0f;
-        //    }
-        //}
-        
-        // Optimise - SIMD Zero, Diagonals One
-        zero();
-        a[0] = 1.f; a[5] = 1.f; a[10] = 1.f; a[15] = 1.f;
+        #if OPT_MATRIX_INITS
+            // Optimise - SIMD Zero, Diagonals One
+            zero();
+            a[0] = 1.f; a[5] = 1.f; a[10] = 1.f; a[15] = 1.f;
+        #else
+            // Base Rasterizer
+            for (int i = 0; i < 4; ++i) {
+                for (int j = 0; j < 4; ++j) {
+                    m[i][j] = (i == j) ? 1.0f : 0.0f;
+                }
+            }
+        #endif
     }
 };

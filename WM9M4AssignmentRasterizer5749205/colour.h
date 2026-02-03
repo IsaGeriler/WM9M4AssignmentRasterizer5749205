@@ -65,15 +65,15 @@ public:
     // - cb: Blue component as an unsigned char
     void toRGB(unsigned char& cr, unsigned char& cg, unsigned char& cb) const {
         #if OPT_COLOUR_DISABLE_FLOOR
-        // Optimisation - Disable redundant floor calls
-        cr = static_cast<unsigned char>((r * 255));
-        cg = static_cast<unsigned char>((g * 255));
-        cb = static_cast<unsigned char>((b * 255));
+            // Optimisation - Disable redundant floor calls
+            cr = static_cast<unsigned char>((r * 255));
+            cg = static_cast<unsigned char>((g * 255));
+            cb = static_cast<unsigned char>((b * 255));
         #else
-        // Base Rasteriser
-        cr = static_cast<unsigned char>(std::floor(r * 255));
-        cg = static_cast<unsigned char>(std::floor(g * 255));
-        cb = static_cast<unsigned char>(std::floor(b * 255));
+            // Base Rasteriser
+            cr = static_cast<unsigned char>(std::floor(r * 255));
+            cg = static_cast<unsigned char>(std::floor(g * 255));
+            cb = static_cast<unsigned char>(std::floor(b * 255));
         #endif
     }
 

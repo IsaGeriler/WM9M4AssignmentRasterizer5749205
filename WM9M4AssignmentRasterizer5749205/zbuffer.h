@@ -51,40 +51,40 @@ public:
     // which represents the farthest possible depth.
     void clear() {
         #if OPT_DEPTH_BUFFER_CLEAR_AVX2
-        // Optimisation - Clear the depth buffer using SIMD/AVX2
-        size_t i = 0;                        // Shared value
-        size_t bufferSize = width * height;  // Buffer size
+            // Optimisation - Clear the depth buffer using SIMD/AVX2
+            size_t i = 0;                        // Index iterator
+            size_t bufferSize = width * height;  // Buffer size
 
-        // Check if the templated type is a float at the compile time
-        if constexpr (std::is_same_v<T, float>) {
-            // Define a vector of ones (8 floats)
-            __m256 vOne = _mm256_set1_ps(1.f);
-            for (; i + 7 < bufferSize; i += 8) {
-                _mm256_storeu_ps(&buffer[i], vOne);
+            // Check if the templated type is a float at the compile time
+            if constexpr (std::is_same_v<T, float>) {
+                // Define a vector of ones (8 floats)
+                __m256 vOne = _mm256_set1_ps(1.f);
+                for (; i + 7 < bufferSize; i += 8) {
+                    _mm256_storeu_ps(&buffer[i], vOne);
+                }
+                // Handle Remaining Pixels
+                for (; i < bufferSize; i++) {
+                    buffer[i] = 1.f;
+                }
             }
-            // Handle Remaining Pixels
-            for (; i < bufferSize; i++) {
-                buffer[i] = 1.f;
+            // Check if the templated type is a double at the compile time 
+            else if constexpr (std::is_same_v<T, double>) {
+                // Define a vector of ones (4 doubles)
+                __m256d vOne = _mm256_set1_pd(1.0);
+                for (; i + 3 < bufferSize; i += 4) {
+                    _mm256_storeu_pd(&buffer, vOne);
+                }
+                // Handle Remaining Pixels
+                for (; i < bufferSize; i++) {
+                    buffer[i] = 1.0;
+                }
             }
-        }
-        // Check if the templated type is a double at the compile time 
-        else if constexpr (std::is_same_v<T, double>) {
-            // Define a vector of ones (4 doubles)
-            __m256d vOne = _mm256_set1_pd(1.0);
-            for (; i + 3 < bufferSize; i += 4) {
-                _mm256_storeu_pd(&buffer, vOne);
-            }
-            // Handle Remaining Pixels
-            for (; i < bufferSize; i++) {
-                buffer[i] = 1.0;
-            }
-        }
         #else
-        // Base Rasterizer - Fills all 786,432 slots one by one...
-        //could also use fill_n
-        for (unsigned int i = 0; i < width * height; i++) {
-            buffer[i] = T(1.0); // Reset each depth value
-        }
+            // Base Rasterizer - Fills all 786,432 slots one by one...
+            // could also use fill_n
+            for (unsigned int i = 0; i < width * height; i++) {
+                buffer[i] = T(1.0);  // Reset each depth value
+            }
         #endif
     }
 
@@ -94,7 +94,7 @@ public:
 
     // Destructor to clean up memory allocated for the Z-buffer.
     ~Zbuffer() {
-        if (buffer != nullptr) delete[] buffer; // Free the allocated memory
+        if (buffer != nullptr) delete[] buffer;  // Free the allocated memory
     }
 
     // Move operators just in case

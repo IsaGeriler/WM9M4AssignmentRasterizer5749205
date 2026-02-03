@@ -9,7 +9,7 @@ class vec4 {
 private:
     // Fast Inverse Square Root Implementation
     // This algorithm is best known for its usage at Quake III Arena (1999).
-    // Original author(s) of this algorithm are Greg Walsh and Cleve Moler.
+    // Original author(s) of this algorithm are Greg Walsh, and Cleve Moler.
     // This implementation is based on the mathematical approach and optimization done by Chris Lomont.
     // Reference(s):
     // Lomont, C. (2003). Fast Inverse Square Root:
@@ -23,7 +23,7 @@ private:
         i = 0x5f375a86 - (i >> 1);         // Initial guess
         x = *(float*)&i;                   // Convert bits back to float
         x = x * (1.5f - (xhalf * x * x));  // Newton step, repeat to increase the accuracy
-        //x = x * (1.5f - (xhalf * x * x));
+        // x = x * (1.5f - (xhalf * x * x));
         return x;
     }
 
@@ -58,15 +58,15 @@ public:
     // Divides the vector by its W component and sets W to 1.
     // Useful for normalizing the W component after transformations.
     void divideW() {
-        // Base Rasterizer (3 divisions...)
-        //x /= w;
-        //y /= w;
-        //z /= w;
-        //w = 1.f;
-
-        // Optimization - 1 division, 3 multiplication
-        float invW = 1.f / w;
-        x *= invW; y *= invW; z *= invW; w = 1.f;
+        #if OPT_VEC4_DISABLE_REDUNDANT_DIVS
+            // Optimization - 1 division, 3 multiplication
+            float invW = 1.f / w;
+            x *= invW; y *= invW; z *= invW; 
+        #else
+            // Base Rasterizer - 3 divisions...
+            x /= w; y /= w; z /= w;
+        #endif
+        w = 1.f;  // Same assignment in both conditions, no need for code-line duplications
     }
 
     // Accesses a vector component by index.
@@ -113,7 +113,7 @@ public:
             v1.y * v2.z - v1.z * v2.y,
             v1.z * v2.x - v1.x * v2.z,
             v1.x * v2.y - v1.y * v2.x,
-            0.0f // The W component is set to 0 for cross products
+            0.0f  // The W component is set to 0 for cross products
         );
     }
 
@@ -129,19 +129,19 @@ public:
     // Normalizes the vector to make its length equal to 1.
     // This operation does not affect the W component.
     void normalise() {
-        // Base Rasterizer - 3 Divisions...
-        //float length = std::sqrt(x * x + y * y + z * z);
-        //x /= length;
-        //y /= length;
-        //z /= length;
-
-        // Obsolete Optimization - Fast Inverse Square Root (in fact, this slows down the program on modern CPUs...)
-        //float invLength = Q_rsqrt(x * x + y * y + z * z);
-        //x *= invLength; y *= invLength; z *= invLength;
-        
-        // Optimization - 1 Division, 3 Multiplication
-        float length = std::sqrt(x * x + y * y + z * z);
-        float invLength = 1.f / length;
-        x *= invLength; y *= invLength; z *= invLength;
+        #if OPT_VEC4_DISABLE_REDUNDANT_DIVS
+            // Optimization - 1 Division, 3 Multiplication
+            float length = std::sqrt(x * x + y * y + z * z);
+            float invLength = 1.f / length;
+            x *= invLength; y *= invLength; z *= invLength;
+        #elif OPT_VEC4_FAST_INV_SQRT
+            // Optimization - Quake III Arena Fast Inverse Square Root (in fact, this slows down the program on modern CPUs...)
+            float invLength = Q_rsqrt(x * x + y * y + z * z);
+            x *= invLength; y *= invLength; z *= invLength;
+        #else
+            // Base Rasterizer - 3 Divisions...
+            float length = std::sqrt(x * x + y * y + z * z);
+            x /= length; y /= length; z /= length;
+        #endif
     }
 };
