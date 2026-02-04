@@ -259,81 +259,61 @@ static void scene2() {
 }
 
 // These scene will be written to showcase different parallel issues and optimisations
+// Helix Benchmark - High density geometry stress test
 // No input variables
 static void scene3() {
-    // Many Cubes... simulate a fighter jet flying through cube clouds... plan 400 cubes
-    // Find a way to showcase AoS vs. SoA and much more...
     Renderer renderer;
     matrix camera = matrix::makeIdentity();
     Light L { vec4(0.f, 1.f, 1.f, 0.f), colour(1.0f, 1.0f, 1.0f), colour(0.2f, 0.2f, 0.2f) };
-    
-    std::vector<Mesh*> scene;
-
     RandomNumberGenerator& rng = RandomNumberGenerator::getInstance();
-    struct rRot { float x; float y; float z; }; // Structure to store random rotation parameters
+
+    // Structure to store random rotation parameters
+    struct rRot { float x; float y; float z; };
+    
+    // Vectors to store meshes and rotations
+    std::vector<Mesh*> scene;
     std::vector<rRot> rotations;
 
-    // Create a scene with 400 random cubes
-    for (unsigned int i = 0; i < 50; i++) {
-        Mesh* m = new Mesh();
-        *m = Mesh::makeCube(1.f);
-        scene.push_back(m);
-        m->world = matrix::makeTranslation(-2.f, -2.f, (-3 * static_cast<float>(i)));
-        rRot r1{ rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f) };
-        rotations.push_back(r1);
+    // Initialize parameters for a scene with 1600 meshes
+    int rings = 100;
+    int meshesPerRing = 16;
+    float ringRadius = 6.f;   // Radius of the ring
+    float ringDepth = 3.5f;   // Distance between two rings
+    float pi = std::numbers::pi_v<float>;
 
-        m = new Mesh();
-        *m = Mesh::makeCube(1.f);
-        scene.push_back(m);
-        m->world = matrix::makeTranslation(2.f, -2.f, (-3 * static_cast<float>(i)));
-        rRot r2{ rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f) };
-        rotations.push_back(r2);
+    // Pre-allocate memory for the scene & rotations
+    scene.reserve(rings * meshesPerRing);
+    rotations.reserve(rings * meshesPerRing);
 
-        m = new Mesh();
-        *m = Mesh::makeCube(1.f);
-        scene.push_back(m);
-        m->world = matrix::makeTranslation(-2.f, 0.f, (-3 * static_cast<float>(i)));
-        rRot r3{ rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f) };
-        rotations.push_back(r3);
+    // Mesh generation for the vortex warp, consisting of cubes and spheres, total of 1600 meshes
+    for (int i = 0; i < rings; i++) {
+        float offset = static_cast<float>(i) * 0.2f;
+        for (int j = 0; j < meshesPerRing; j++) {
+            Mesh* m = new Mesh();
 
-        m = new Mesh();
-        *m = Mesh::makeCube(1.f);
-        scene.push_back(m);
-        m->world = matrix::makeTranslation(2.f, 0.f, (-3 * static_cast<float>(i)));
-        rRot r4{ rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f) };
-        rotations.push_back(r4);
+            // Make every 5th object a sphere, else make it a cube
+            if ((i * meshesPerRing + j) % 5 == 0) *m = Mesh::makeSphere(1.f, 15, 15);
+            else *m = Mesh::makeCube(1.f);
+            scene.push_back(m);
 
-        m = new Mesh();
-        *m = Mesh::makeCube(1.f);
-        scene.push_back(m);
-        m->world = matrix::makeTranslation(-2.f, 2.f, (-3 * static_cast<float>(i)));
-        rRot r5{ rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f) };
-        rotations.push_back(r5);
+            // Find the current angle for polar coordinates
+            float theta = (static_cast<float>(j) / meshesPerRing) * 2 * pi;
+            theta += offset;
 
-        m = new Mesh();
-        *m = Mesh::makeCube(1.f);
-        scene.push_back(m);
-        m->world = matrix::makeTranslation(2.f, 2.f, (-3 * static_cast<float>(i)));
-        rRot r6{ rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f) };
-        rotations.push_back(r6);
+            // Calculate polar coordinates for the rings, and set the word position of the mesh
+            float x = std::cos(theta) * ringRadius;
+            float y = std::sin(theta) * ringRadius;
+            float z = -ringDepth * static_cast<float>(i);
+            m->world = matrix::makeTranslation(x, y, z);
 
-        m = new Mesh();
-        *m = Mesh::makeCube(1.f);
-        scene.push_back(m);
-        m->world = matrix::makeTranslation(0.f, -2.f, (-3 * static_cast<float>(i)));
-        rRot r7{ rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f) };
-        rotations.push_back(r7);
-
-        m = new Mesh();
-        *m = Mesh::makeCube(1.f);
-        scene.push_back(m);
-        m->world = matrix::makeTranslation(0.f, 2.f, (-3 * static_cast<float>(i)));
-        rRot r8{ rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f) };
-        rotations.push_back(r8);
+            // Add rotation speed
+            rRot r{ rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f) , rng.getRandomFloat(-.1f, .1f) };
+            rotations.push_back(r);
+        }
     }
-
-    float zoffset = 8.f;  // Initial camera Z-offset
-    float step = -0.1f;   // Step size for camera movement
+    float zoffset = 8.f;   // Initial camera Z-offset
+    float step = -0.15f;   // Step size for camera movement
+    float maxDepth = -(static_cast<float>(rings) * ringDepth) + 10.f;
 
     auto start = std::chrono::high_resolution_clock::now();
     std::chrono::time_point<std::chrono::high_resolution_clock> end;
@@ -345,17 +325,16 @@ static void scene3() {
     while (running) {
         renderer.canvas.checkInput();
         renderer.clear();
-
         camera = matrix::makeTranslation(0.f, 0.f, -zoffset); // Update camera position
 
         // Rotate each cube in the grid
         for (unsigned int i = 0; i < rotations.size(); i++)
             scene[i]->world = scene[i]->world * matrix::makeRotateXYZ(rotations[i].x, rotations[i].y, rotations[i].z);
-
+        
         if (renderer.canvas.keyPressed(VK_ESCAPE)) break;
-
         zoffset += step;
-        if (zoffset < -150.f || zoffset > 8.f) {
+
+        if (zoffset < maxDepth || zoffset > 8.f) {
             step *= -1.f;
             if (++cycle % 2 == 0) {
                 end = std::chrono::high_resolution_clock::now();
@@ -363,12 +342,10 @@ static void scene3() {
                 start = std::chrono::high_resolution_clock::now();
             }
         }
-
         for (auto& m : scene)
             render(renderer, m, camera, L);
         renderer.present();
     }
-
     for (auto& m : scene)
         delete m;
 }
