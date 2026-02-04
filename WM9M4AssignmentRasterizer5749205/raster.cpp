@@ -126,6 +126,119 @@ static matrix makeRandomRotation() {
     }
 }
 
+// Just a prototype for scene 3, consisting of a corridor of 400 random rotating cubes
+// Deprecated Scene - but will leave on the source code to show where the inspiration came from, for the finalized scene
+static void scene3_prototype() {
+    Renderer renderer;
+    matrix camera = matrix::makeIdentity();
+    Light L{ vec4(0.f, 1.f, 1.f, 0.f), colour(1.0f, 1.0f, 1.0f), colour(0.2f, 0.2f, 0.2f) };
+
+    std::vector<Mesh*> scene;
+
+    RandomNumberGenerator& rng = RandomNumberGenerator::getInstance();
+    struct rRot { float x; float y; float z; }; // Structure to store random rotation parameters
+    std::vector<rRot> rotations;
+
+    // Create a scene with 400 random cubes
+    for (unsigned int i = 0; i < 50; i++) {
+        Mesh* m = new Mesh();
+        *m = Mesh::makeCube(1.f);
+        scene.push_back(m);
+        m->world = matrix::makeTranslation(-2.f, -2.f, (-3 * static_cast<float>(i)));
+        rRot r1{ rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f) };
+        rotations.push_back(r1);
+
+        m = new Mesh();
+        *m = Mesh::makeCube(1.f);
+        scene.push_back(m);
+        m->world = matrix::makeTranslation(2.f, -2.f, (-3 * static_cast<float>(i)));
+        rRot r2{ rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f) };
+        rotations.push_back(r2);
+
+        m = new Mesh();
+        *m = Mesh::makeCube(1.f);
+        scene.push_back(m);
+        m->world = matrix::makeTranslation(-2.f, 0.f, (-3 * static_cast<float>(i)));
+        rRot r3{ rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f) };
+        rotations.push_back(r3);
+
+        m = new Mesh();
+        *m = Mesh::makeCube(1.f);
+        scene.push_back(m);
+        m->world = matrix::makeTranslation(2.f, 0.f, (-3 * static_cast<float>(i)));
+        rRot r4{ rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f) };
+        rotations.push_back(r4);
+
+        m = new Mesh();
+        *m = Mesh::makeCube(1.f);
+        scene.push_back(m);
+        m->world = matrix::makeTranslation(-2.f, 2.f, (-3 * static_cast<float>(i)));
+        rRot r5{ rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f) };
+        rotations.push_back(r5);
+
+        m = new Mesh();
+        *m = Mesh::makeCube(1.f);
+        scene.push_back(m);
+        m->world = matrix::makeTranslation(2.f, 2.f, (-3 * static_cast<float>(i)));
+        rRot r6{ rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f) };
+        rotations.push_back(r6);
+
+        m = new Mesh();
+        *m = Mesh::makeCube(1.f);
+        scene.push_back(m);
+        m->world = matrix::makeTranslation(0.f, -2.f, (-3 * static_cast<float>(i)));
+        rRot r7{ rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f) };
+        rotations.push_back(r7);
+
+        m = new Mesh();
+        *m = Mesh::makeCube(1.f);
+        scene.push_back(m);
+        m->world = matrix::makeTranslation(0.f, 2.f, (-3 * static_cast<float>(i)));
+        rRot r8{ rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f) };
+        rotations.push_back(r8);
+    }
+
+    float zoffset = 8.f;  // Initial camera Z-offset
+    float step = -0.1f;   // Step size for camera movement
+
+    auto start = std::chrono::high_resolution_clock::now();
+    std::chrono::time_point<std::chrono::high_resolution_clock> end;
+    int cycle = 0;
+
+    bool running = true;
+
+    // Main rendering loop
+    while (running) {
+        renderer.canvas.checkInput();
+        renderer.clear();
+
+        camera = matrix::makeTranslation(0.f, 0.f, -zoffset); // Update camera position
+
+        // Rotate each cube in the grid
+        for (unsigned int i = 0; i < rotations.size(); i++)
+            scene[i]->world = scene[i]->world * matrix::makeRotateXYZ(rotations[i].x, rotations[i].y, rotations[i].z);
+
+        if (renderer.canvas.keyPressed(VK_ESCAPE)) break;
+
+        zoffset += step;
+        if (zoffset < -150.f || zoffset > 8.f) {
+            step *= -1.f;
+            if (++cycle % 2 == 0) {
+                end = std::chrono::high_resolution_clock::now();
+                std::cout << cycle / 2 << " :" << std::chrono::duration<double, std::milli>(end - start).count() << "ms\n";
+                start = std::chrono::high_resolution_clock::now();
+            }
+        }
+
+        for (auto& m : scene)
+            render(renderer, m, camera, L);
+        renderer.present();
+    }
+
+    for (auto& m : scene)
+        delete m;
+}
+
 // Function to render a scene with multiple objects and dynamic transformations
 // No input variables
 static void scene1() {
@@ -356,6 +469,7 @@ int main() {
     // Uncomment the desired scene function to run
     //scene1();
     //scene2();
+    //scene3_prototype();
     scene3();
     //sceneTest();
     return 0;
