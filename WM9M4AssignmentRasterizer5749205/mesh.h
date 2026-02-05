@@ -15,64 +15,6 @@ struct Vertex {
     colour rgb;     // Color of the vertex
 };
 
-// Vertex as SoA (Structure of Arrays)
-struct VertexSoA {
-    // Position components of the vertex in 3D space
-    std::vector<float> px;
-    std::vector<float> py;
-    std::vector<float> pz;
-    std::vector<float> pw;
-
-    // Normal vector components for the vertex
-    std::vector<float> nx;
-    std::vector<float> ny;
-    std::vector<float> nz;
-    std::vector<float> nw;
-
-    // Color components of the vertex
-    std::vector<float> cr;
-    std::vector<float> cg;
-    std::vector<float> cb;
-
-    // Methods to emplace position vector, normal vector, and colour
-    void emplace_back_p(const vec4& v) {
-        px.emplace_back(v.x);
-        py.emplace_back(v.y);
-        pz.emplace_back(v.z);
-        pw.emplace_back(v.w);
-    }
-
-    void emplace_back_normal(const vec4& n) {
-        nx.emplace_back(n.x);
-        ny.emplace_back(n.y);
-        nz.emplace_back(n.z);
-        nw.emplace_back(n.w);
-    }
-
-    void emplace_back_colour(colour c) {
-        cr.emplace_back(c[c.RED]);
-        cg.emplace_back(c[c.GREEN]);
-        cb.emplace_back(c[c.BLUE]);
-    }
-
-    // Clear the Vertex
-    void clear_all() {
-        // Clear position vectors
-        px.clear(); py.clear(); pz.clear(); pw.clear();
-
-        // Clear normal vectors
-        nx.clear(); ny.clear(); nz.clear(); nw.clear();
-
-        // Clear colours
-        cr.clear(); cg.clear(); cb.clear();
-    }
-
-    // Size of the Vertex
-    int getSize() const {
-        return px.size();  // or any of the vectors really...
-    }
-};
-
 // Stores indices of vertices that form a triangle in a mesh
 struct triIndices {
     unsigned int v[3]; // Indices into the vertex array
@@ -118,14 +60,8 @@ public:
     // - vertex: Position of the vertex
     // - normal: Normal vector for the vertex
     void addVertex(const vec4& vertex, const vec4& normal) {
-        // AoS Base Rasterizer Impl.
         Vertex v = { vertex, normal, col };
         vertices.push_back(v);
-        
-        // SoA Optimization Impl.
-        //verticesSoA.emplace_back_p(vertex);
-        //verticesSoA.emplace_back_normal(normal);
-        //verticesSoA.emplace_back_colour(col);
     }
 
     // Add a triangle to the mesh
@@ -137,21 +73,11 @@ public:
 
     // Display the vertices and triangles of the mesh
     void display() const {
-        // AoS Impl. Base Rasterizer
         std::cout << "Vertices and Normals:\n";
         for (size_t i = 0; i < vertices.size(); ++i) {
             std::cout << i << ": Vertex (" << vertices[i].p[0] << ", " << vertices[i].p[1] << ", " << vertices[i].p[2] << ", " << vertices[i].p[3] << ")"
                 << " Normal (" << vertices[i].normal[0] << ", " << vertices[i].normal[1] << ", " << vertices[i].normal[2] << ", " << vertices[i].normal[3] << ")\n";
         }
-
-        // SoA Impl. Optimisation
-        //size_t verticesSizeSoA = verticesSoA.px.size();
-        //std::cout << "Vertices and Normals:\n";
-        //for (size_t i = 0; i < verticesSizeSoA; ++i) {
-        //    std::cout << i 
-        //        << ": Vertex (" << verticesSoA.px[i] << ", " << verticesSoA.py[i] << ", " << verticesSoA.pz[i] << ", " << verticesSoA.pw[i]
-        //        << ") Normal (" << verticesSoA.nx[i] << ", " << verticesSoA.ny[i] << ", " << verticesSoA.nz[i] << ", " << verticesSoA.nw[i] << ")\n";
-        //}
 
         std::cout << "\nTriangles:\n";
         for (const auto& t : triangles) {
@@ -167,7 +93,6 @@ public:
     static Mesh makeRectangle(float x1, float y1, float x2, float y2) {
         Mesh mesh;
         mesh.vertices.clear();
-        // mesh.verticesSoA.clear_all();
         mesh.triangles.clear();
 
         // Define the four corners of the rectangle
@@ -202,7 +127,6 @@ public:
     static Mesh makeCube(float size) {
         Mesh mesh;
         mesh.vertices.clear();
-        // mesh.verticesSoA.clear_all();
         mesh.triangles.clear();
 
         // float halfSize = size / 2.0f;
@@ -273,7 +197,6 @@ public:
         }
 
         mesh.vertices.clear();
-        //mesh.verticesSoA.clear_all();
         mesh.triangles.clear();
 
         // Store pi, and inverse latitudeDivisions & longitudeDivisions
