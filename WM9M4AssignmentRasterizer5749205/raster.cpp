@@ -28,29 +28,42 @@ static void render(Renderer& renderer, Mesh* mesh, matrix& camera, Light& L) {
         L.omega_i.normalise();
     #endif
 
+    #if OPT_RASTER_ENABLE_VERTEX_CACHING
+        // Optimisation - Vertex Caching to avoid redundant calculations (e.g. re-calculating same vertices)
+        std::vector<Vertex> vertexCache;
+        mesh->vertexPreProcessing(vertexCache, p, renderer.canvas.getWidth(), renderer.canvas.getHeight());
+    #endif
+
     // Iterate through all triangles in the mesh
     for (triIndices& ind : mesh->triangles) {
-        Vertex t[3]; // Temporary array to store transformed triangle vertices
+        Vertex t[3];  // Temporary array to store transformed triangle vertices
 
-        // Transform each vertex of the triangle
-        for (unsigned int i = 0; i < 3; i++) {
-            t[i].p = p * mesh->vertices[ind.v[i]].p; // Apply transformations
-            t[i].p.divideW(); // Perspective division to normalize coordinates
+        #if OPT_RASTER_ENABLE_VERTEX_CACHING
+            // Optimisation - Vertex Caching to avoid redundant calculations (e.g. re-calculating same vertices)
+            t[0] = vertexCache[ind.v[0]];
+            t[1] = vertexCache[ind.v[1]];
+            t[2] = vertexCache[ind.v[2]];
+        #else
+            // Base Rasterizer
+            // Transform each vertex of the triangle
+            for (unsigned int i = 0; i < 3; i++) {
+                t[i].p = p * mesh->vertices[ind.v[i]].p; // Apply transformations
+                t[i].p.divideW(); // Perspective division to normalize coordinates
 
-            // Transform normals into world space for accurate lighting
-            // no need for perspective correction as no shearing or non-uniform scaling
-            t[i].normal = mesh->world * mesh->vertices[ind.v[i]].normal; 
-            t[i].normal.normalise();
+                // Transform normals into world space for accurate lighting
+                // no need for perspective correction as no shearing or non-uniform scaling
+                t[i].normal = mesh->world * mesh->vertices[ind.v[i]].normal;
+                t[i].normal.normalise();
 
-            // Map normalized device coordinates to screen space
-            t[i].p[0] = (t[i].p[0] + 1.f) * 0.5f * static_cast<float>(renderer.canvas.getWidth());
-            t[i].p[1] = (t[i].p[1] + 1.f) * 0.5f * static_cast<float>(renderer.canvas.getHeight());
-            t[i].p[1] = renderer.canvas.getHeight() - t[i].p[1]; // Invert y-axis
+                // Map normalized device coordinates to screen space
+                t[i].p[0] = (t[i].p[0] + 1.f) * 0.5f * static_cast<float>(renderer.canvas.getWidth());
+                t[i].p[1] = (t[i].p[1] + 1.f) * 0.5f * static_cast<float>(renderer.canvas.getHeight());
+                t[i].p[1] = renderer.canvas.getHeight() - t[i].p[1]; // Invert y-axis
 
-            // Copy vertex colours
-            t[i].rgb = mesh->vertices[ind.v[i]].rgb;
-        }
-
+                // Copy vertex colours
+                t[i].rgb = mesh->vertices[ind.v[i]].rgb;
+            }
+        #endif
         // Clip triangles with Z-values outside [-1, 1]
         if (fabs(t[0].p[2]) > 1.f || fabs(t[1].p[2]) > 1.f || fabs(t[2].p[2]) > 1.f) continue;
 

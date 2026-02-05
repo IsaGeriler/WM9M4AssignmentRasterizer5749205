@@ -55,6 +55,7 @@ struct VertexSoA {
         cb.emplace_back(c[c.BLUE]);
     }
 
+    // Clear the Vertex
     void clear_all() {
         // Clear position vectors
         px.clear(); py.clear(); pz.clear(); pw.clear();
@@ -64,6 +65,11 @@ struct VertexSoA {
 
         // Clear colours
         cr.clear(); cg.clear(); cb.clear();
+    }
+
+    // Size of the Vertex
+    int getSize() const {
+        return px.size();  // or any of the vectors really...
     }
 };
 
@@ -267,7 +273,7 @@ public:
         }
 
         mesh.vertices.clear();
-        //mesh.clear_all()
+        //mesh.verticesSoA.clear_all();
         mesh.triangles.clear();
 
         // Store pi, and inverse latitudeDivisions & longitudeDivisions
@@ -314,5 +320,32 @@ public:
             }
         }
         return mesh;
+    }
+
+    // Optimisation - Vertex Caching to avoid redundant calculations (e.g. re-calculating same vertices)
+    void vertexPreProcessing(std::vector<Vertex>& vertexCache, matrix& p, unsigned int width, unsigned int height) {
+        // Allocate memory in the cache, according to the vertices size
+        vertexCache.resize(vertices.size());
+
+        // Transform each vertex of the triangle
+        for (unsigned int i = 0; i < vertices.size(); i++) {
+            Vertex vertex;
+            vertex.p = p * vertices[i].p;  // Apply transformations
+            vertex.p.divideW();            // Perspective division to normalize coordinates
+
+            // Transform normals into world space for accurate lighting
+            // no need for perspective correction as no shearing or non-uniform scaling
+            vertex.normal = world * vertices[i].normal;
+            vertex.normal.normalise();
+
+            // Map normalized device coordinates to screen space
+            vertex.p[0] = (vertex.p[0] + 1.f) * 0.5f * static_cast<float>(width);
+            vertex.p[1] = (vertex.p[1] + 1.f) * 0.5f * static_cast<float>(height);
+            vertex.p[1] = height - vertex.p[1]; // Invert y-axis
+
+            // Copy vertex colours
+            vertex.rgb = vertices[i].rgb;
+            vertexCache[i] = vertex;
+        }
     }
 };
