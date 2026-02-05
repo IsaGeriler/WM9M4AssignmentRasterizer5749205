@@ -158,57 +158,50 @@ static void scene3_prototype() {
         *m = Mesh::makeCube(1.f);
         scene.push_back(m);
         m->world = matrix::makeTranslation(-2.f, -2.f, (-3 * static_cast<float>(i)));
-        rRot r1{ rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f) };
-        rotations.push_back(r1);
+        rRot r{ rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f) };
+        rotations.push_back(r);
 
         m = new Mesh();
         *m = Mesh::makeCube(1.f);
         scene.push_back(m);
         m->world = matrix::makeTranslation(2.f, -2.f, (-3 * static_cast<float>(i)));
-        rRot r2{ rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f) };
-        rotations.push_back(r2);
+        rotations.push_back(r);
 
         m = new Mesh();
         *m = Mesh::makeCube(1.f);
         scene.push_back(m);
         m->world = matrix::makeTranslation(-2.f, 0.f, (-3 * static_cast<float>(i)));
-        rRot r3{ rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f) };
-        rotations.push_back(r3);
+        rotations.push_back(r);
 
         m = new Mesh();
         *m = Mesh::makeCube(1.f);
         scene.push_back(m);
         m->world = matrix::makeTranslation(2.f, 0.f, (-3 * static_cast<float>(i)));
-        rRot r4{ rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f) };
-        rotations.push_back(r4);
+        rotations.push_back(r);
 
         m = new Mesh();
         *m = Mesh::makeCube(1.f);
         scene.push_back(m);
         m->world = matrix::makeTranslation(-2.f, 2.f, (-3 * static_cast<float>(i)));
-        rRot r5{ rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f) };
-        rotations.push_back(r5);
+        rotations.push_back(r);
 
         m = new Mesh();
         *m = Mesh::makeCube(1.f);
         scene.push_back(m);
         m->world = matrix::makeTranslation(2.f, 2.f, (-3 * static_cast<float>(i)));
-        rRot r6{ rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f) };
-        rotations.push_back(r6);
+        rotations.push_back(r);
 
         m = new Mesh();
         *m = Mesh::makeCube(1.f);
         scene.push_back(m);
         m->world = matrix::makeTranslation(0.f, -2.f, (-3 * static_cast<float>(i)));
-        rRot r7{ rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f) };
-        rotations.push_back(r7);
+        rotations.push_back(r);
 
         m = new Mesh();
         *m = Mesh::makeCube(1.f);
         scene.push_back(m);
         m->world = matrix::makeTranslation(0.f, 2.f, (-3 * static_cast<float>(i)));
-        rRot r8{ rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f), rng.getRandomFloat(-.1f, .1f) };
-        rotations.push_back(r8);
+        rotations.push_back(r);
     }
 
     float zoffset = 8.f;  // Initial camera Z-offset
