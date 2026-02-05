@@ -59,7 +59,7 @@ public:
     // Useful for normalizing the W component after transformations.
     void divideW() {
         #if OPT_VEC4_DISABLE_REDUNDANT_DIVS
-            // Optimization - 1 division, 3 multiplication
+            // Optimisation - 1 division, 3 multiplication
             float invW = 1.f / w;
             x *= invW; y *= invW; z *= invW; 
         #else
@@ -130,12 +130,12 @@ public:
     // This operation does not affect the W component.
     void normalise() {
         #if OPT_VEC4_DISABLE_REDUNDANT_DIVS
-            // Optimization - 1 Division, 3 Multiplication
+            // Optimisation - 1 Division, 3 Multiplication
             float length = std::sqrt(x * x + y * y + z * z);
             float invLength = 1.f / length;
             x *= invLength; y *= invLength; z *= invLength;
         #elif OPT_VEC4_FAST_INV_SQRT
-            // Optimization - Quake III Arena Fast Inverse Square Root (in fact, this slows down the program on modern CPUs...)
+            // Optimisation - Quake III Arena Fast Inverse Square Root (in fact, this slows down the program on modern CPUs...)
             float invLength = Q_rsqrt(x * x + y * y + z * z);
             x *= invLength; y *= invLength; z *= invLength;
         #else

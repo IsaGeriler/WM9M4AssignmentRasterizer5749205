@@ -43,7 +43,7 @@ public:
     vec4 operator*(const vec4& v) const {
         vec4 result;
         #if OPT_MATRIX_VECMUL_AVX
-            // Optimisation - AVX Multiplication (SIMD, using m128 registers (4 floats))
+            // Optimisation - AVX/SSE Multiplication (SIMD, using m128 registers (4 floats))
             // Load in the vector to the m128 register
             __m128 vec = _mm_loadu_ps(v.v);
 
@@ -54,22 +54,22 @@ public:
             __m128 m3 = _mm_mul_ps(_mm_loadu_ps(&a[12]), vec);  // a[12] * v[0], a[13] * v[1], a[14] * v[2], a[15] * v[3]
 
             // Horizontal Add Step (and breakdown in comments)
-            // a[0] * v[0] + a[1] * v[1]
-            // a[2] * v[2] + a[3] * v[3]
-            // a[4] * v[0] + a[5] * v[1]
-            // a[6] * v[2] + a[7] * v[3]
+            // sum01[0] = a[0] * v[0] + a[1] * v[1]
+            // sum01[1] = a[2] * v[2] + a[3] * v[3]
+            // sum01[2] = a[4] * v[0] + a[5] * v[1]
+            // sum01[3] = a[6] * v[2] + a[7] * v[3]
             __m128 sum01 = _mm_hadd_ps(m0, m1);
 
-            // a[8] * v[0] + a[9] * v[1]
-            // a[10] * v[2] + a[11] * v[3]
-            // a[12] * v[0] + a[13] * v[1]
-            // a[14] * v[2] + a[15] * v[3]
+            // sum23[0] = a[8] * v[0] + a[9] * v[1]
+            // sum23[1] = a[10] * v[2] + a[11] * v[3]
+            // sum23[2] = a[12] * v[0] + a[13] * v[1]
+            // sum23[3] = a[14] * v[2] + a[15] * v[3]
             __m128 sum23 = _mm_hadd_ps(m2, m3);
 
             // res[0] = a[0] * v[0] + a[1] * v[1] + a[2] * v[2] + a[3] * v[3]
             // res[1] = a[4] * v[0] + a[5] * v[1] + a[6] * v[2] + a[7] * v[3]
-            // res[3] = a[8] * v[0] + a[9] * v[1] + a[10] * v[2] + a[11] * v[3]
-            // res[4] = a[12] * v[0] + a[13] * v[1] + a[14] * v[2] + a[15] * v[3]
+            // res[2] = a[8] * v[0] + a[9] * v[1] + a[10] * v[2] + a[11] * v[3]
+            // res[3] = a[12] * v[0] + a[13] * v[1] + a[14] * v[2] + a[15] * v[3]
             __m128 res = _mm_hadd_ps(sum01, sum23);
 
             // Store the result vector to the vector v pointer
@@ -91,7 +91,7 @@ public:
     matrix operator*(const matrix& mx) const {
         matrix ret;
         #if OPT_MATRIX_4X4MUL_AVX
-            // Optimisation - AVX Multiplication (SIMD, using m128 registers (4 floats))
+            // Optimisation - AVX/SSE Multiplication (SIMD, using m128 registers (4 floats))
             // Important: A x B != B x A
             // Load the entirety of mx/right-hand side matrix
             __m128 row_one = _mm_loadu_ps(&mx.m[0][0]);
@@ -114,7 +114,7 @@ public:
                 _mm_storeu_ps(&ret.m[i][0], _mm_add_ps(resA, resB));
             }
         #elif OPT_MATRIX_4X4MUL_UNROLL
-            // Optimisation - Unrolling & Hardcoding Results
+            // Optimisation - Unrolling the loop and hardcoding the results
             ret.a[0] = a[0] * mx.a[0] + a[1] * mx.a[4] + a[2] * mx.a[8] + a[3] * mx.a[12];
             ret.a[1] = a[0] * mx.a[1] + a[1] * mx.a[5] + a[2] * mx.a[9] + a[3] * mx.a[13];
             ret.a[2] = a[0] * mx.a[2] + a[1] * mx.a[6] + a[2] * mx.a[10] + a[3] * mx.a[14];
@@ -173,8 +173,6 @@ public:
         #else
             // Base Rasterizer
             float tanHalfFov = std::tan(fov / 2.0f);
-
-            // Assign calculations in the correct order
             m.a[0] = 1.0f / (aspect * tanHalfFov);
             m.a[5] = 1.0f / tanHalfFov;
             m.a[10] = -f / (f - n);
@@ -311,7 +309,7 @@ public:
     static matrix makeIdentity() {
         matrix m;
         #if OPT_MATRIX_INITS
-            // Optimise - SIMD Zero, Diagonals One
+            // Optimisation - Use AVX2 when zero'ing (SIMD, 8 floats), set diagonals as one
             m.zero();
             m.a[0] = 1.f; m.a[5] = 1.f; m.a[10] = 1.f; m.a[15] = 1.f;
         #else
@@ -329,7 +327,7 @@ private:
     // Set all elements of the matrix to 0
     void zero() {
         #if OPT_MATRIX_INITS
-            // Optimization - SIMD
+            // Optimisation - Use AVX2 when zero'ing (SIMD, 8 floats)
             __m256 vzero = _mm256_setzero_ps();
             size_t i = 0;
 
@@ -349,7 +347,7 @@ private:
     // Set the matrix as an identity matrix
     void identity() {
         #if OPT_MATRIX_INITS
-            // Optimise - SIMD Zero, Diagonals One
+            // Optimisation - Use AVX2 when zero'ing (SIMD, 8 floats), set diagonals as one
             zero();
             a[0] = 1.f; a[5] = 1.f; a[10] = 1.f; a[15] = 1.f;
         #else

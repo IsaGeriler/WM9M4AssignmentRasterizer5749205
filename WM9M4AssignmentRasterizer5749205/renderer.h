@@ -10,7 +10,7 @@
 // Z-buffer, canvas, and perspective transformations for a 3D scene.
 class Renderer {
     #if OPT_RENDERER_DISABLE_REDUNDANT_DIVS
-        // Optimized - Drop the unneccessary divisions
+        // Optimisation - Drop the unneccessary divisions
         float fov = std::numbers::pi_v<float> * 0.5f;  // Field of view in radians (90.f/180.f = 0.5f)
         float aspect = 1.3333334f;					   // Aspect ratio of the canvas (1024.f/768.f = 4.f/3.f)
     #else

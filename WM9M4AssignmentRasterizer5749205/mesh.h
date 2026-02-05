@@ -35,7 +35,6 @@ public:
     float ka;         // Ambient reflection coefficient
     matrix world;     // Transformation matrix for the mesh
     std::vector<Vertex> vertices;       // List of vertices in the mesh
-    //VertexSoA verticesSoA;  // Vertices SoA
     std::vector<triIndices> triangles;  // List of triangles in the mesh
 
     // Set the uniform color and reflection coefficients for the mesh
@@ -129,8 +128,9 @@ public:
         mesh.vertices.clear();
         mesh.triangles.clear();
 
+        // Division is an expensive operation
+        float halfSize = size * 0.5f;
         // float halfSize = size / 2.0f;
-        float halfSize = size * 0.5f;  // Division is an expensive operation
 
         // Define cube vertices (8 corners)
         vec4 positions[8] = {
