@@ -51,4 +51,23 @@
 
 ## Scene Three
 ### Performance Comparison: Base Rasteriser vs. Optimised Rasteriser
-*Note: Coming soon... thinking about a good scene that will break the base rasteriser, and show the true power of optimising & MT...*
+*Helix Benchmark - High density geometry stress test (vortex warp, consisting of cubes and spheres, total of 1600 meshes, where every 5th object is a sphere)*
+
+| Iteration | Base Rasterizer (ms) | Optimised Scene 3 (ms) | Improvement (%) |
+| :--- | :--- | :--- | :--- |
+| 1 | 89154.10 | 47523.10 | ~46.70% |
+| 2 | 89405.30 | 46234.40 | ~48.29% |
+| 3 | 89405.50 | 46302.10 | ~48.21% |
+| 4 | 87892.40 | 46311.70 | ~47.31% |
+| 5 | 87780.30 | 46449.20 | ~47.08% |
+| 6 | 87546.20 | 47006.60 | ~46.31% |
+| 7 | 87593.70 | 48569.40 | ~44.55% |
+| 8 | 85141.60 | 46538.60 | ~45.34% |
+| 9 | 90429.20 | 45809.50 | ~49.34% |
+| 10 | 89372.80 | 46374.50 | ~48.11% |
+| 11 | 86920.40 | 45187.60 | ~48.01% |
+| 12 | 87006.40 | 48036.80 | ~44.79% |
+| 13 | 87270.50 | 47571.10 | ~45.49% |
+| 14 | 90809.60 | 45215.00 | ~50.21% |
+| 15 | 83413.90 | 45294.90 | ~45.70% |
+| **Average** | **87942.79** | **46561.63** | **~47.05%** |
