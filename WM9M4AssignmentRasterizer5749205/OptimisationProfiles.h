@@ -8,7 +8,7 @@
 
 // Matrix Class Optimisations
 #define OPT_MATRIX_VECMUL_AVX true
-#define OPT_MATRIX_UNROLLMUL false
+#define OPT_MATRIX_4X4MUL_UNROLL false
 #define OPT_MATRIX_4X4MUL_AVX true
 #define OPT_MATRIX_PERSPECTIVE_DIV true
 #define OPT_MATRIX_TRIG_CALLS true

@@ -113,7 +113,7 @@ public:
                 // Store the result
                 _mm_storeu_ps(&ret.m[i][0], _mm_add_ps(resA, resB));
             }
-        #elif OPT_MATRIX_UNROLLMUL
+        #elif OPT_MATRIX_4X4MUL_UNROLL
             // Optimisation - Unrolling & Hardcoding Results
             ret.a[0] = a[0] * mx.a[0] + a[1] * mx.a[4] + a[2] * mx.a[8] + a[3] * mx.a[12];
             ret.a[1] = a[0] * mx.a[1] + a[1] * mx.a[5] + a[2] * mx.a[9] + a[3] * mx.a[13];
