@@ -15,7 +15,8 @@
 #include "light.h"
 #include "triangle.h"
 
-ThreadPool threadpool(std::thread::hardware_concurrency());
+const size_t cpu = std::thread::hardware_concurrency();
+ThreadPool threadpool(cpu);
 
 // Main rendering function that processes a mesh, transforms its vertices, applies lighting, and draws triangles on the canvas.
 // Input Variables:
@@ -49,8 +50,8 @@ static void render(Renderer& renderer, Mesh* mesh, matrix& camera, Light& L) {
             t[2] = vertexCache[ind.v[2]];
         #else
             #if OPT_RASTER_DISABLE_REDUNDANT_HALF_WIDTH_HEIGH_MUL
-                float half_width = 0.5f * static_cast<float>(width);
-                float half_height = 0.5f * static_cast<float>(height);
+                float half_width = 0.5f * static_cast<float>(renderer.canvas.getWidth());
+                float half_height = 0.5f * static_cast<float>(renderer.canvas.getHeight());
             #endif
             // Transform each vertex of the triangle
             for (unsigned int i = 0; i < 3; i++) {
@@ -64,11 +65,11 @@ static void render(Renderer& renderer, Mesh* mesh, matrix& camera, Light& L) {
 
                 // Map normalized device coordinates to screen space
                 #if OPT_RASTER_DISABLE_REDUNDANT_HALF_WIDTH_HEIGH_MUL
-                    vertex.p[0] = (vertex.p[0] + 1.f) * half_width;
-                    vertex.p[1] = (vertex.p[1] + 1.f) * half_height;
+                    t[i].p[0] = (t[i].p[0] + 1.f) * half_width;
+                    t[i].p[1] = (t[i].p[1] + 1.f) * half_height;
                 #else
-                    vertex.p[0] = (vertex.p[0] + 1.f) * 0.5f * static_cast<float>(width);
-                    vertex.p[1] = (vertex.p[1] + 1.f) * 0.5f * static_cast<float>(height);
+                    t[i].p[0] = (t[i].p[0] + 1.f) * 0.5f * static_cast<float>(renderer.canvas.getWidth());
+                    t[i].p[1] = (t[i].p[1] + 1.f) * 0.5f * static_cast<float>(renderer.canvas.getHeight());
                 #endif
                 t[i].p[1] = renderer.canvas.getHeight() - t[i].p[1]; // Invert y-axis
 
@@ -86,7 +87,37 @@ static void render(Renderer& renderer, Mesh* mesh, matrix& camera, Light& L) {
 }
 
 static void renderMT(Renderer& renderer, Mesh* mesh, matrix& camera, Light& L) {
+    // Combine perspective, camera, and world transformations for the mesh
     matrix p = renderer.perspective * camera * mesh->world;
+
+    size_t triangle_size = mesh->triangles.size();
+    size_t triangle_chunk = (triangle_size) / cpu;
+
+    for (size_t start = 0; start < triangle_size; start += triangle_chunk) {
+        size_t end = (start + triangle_chunk > triangle_size) ? start + triangle_chunk : triangle_size;
+        threadpool.enqueue([&renderer, mesh, &p, &L, start, end] {
+            std::vector<Vertex> vertexCache;
+            mesh->vertexPreProcessingMT(vertexCache, p, renderer.canvas.getWidth(), renderer.canvas.getHeight(), start, end);
+
+            // Iterate through all triangles in the mesh
+            for (size_t i = start; i < end; i++) {
+                triIndices& ind = mesh->triangles[i];
+                Vertex t[3];  // Temporary array to store transformed triangle vertices
+
+                t[0] = vertexCache[ind.v[0]];
+                t[1] = vertexCache[ind.v[1]];
+                t[2] = vertexCache[ind.v[2]];
+
+                // Clip triangles with Z-values outside [-1, 1]
+                if (fabs(t[0].p[2]) > 1.f || fabs(t[1].p[2]) > 1.f || fabs(t[2].p[2]) > 1.f) continue;
+
+                // Create a triangle object and render it
+                triangle tri(t[0], t[1], t[2]);
+                tri.draw(renderer, L, mesh->ka, mesh->kd);
+            }
+        });
+    }
+    threadpool.wait();
 }
 
 // Test scene function to demonstrate rendering with user-controlled transformations
@@ -314,8 +345,13 @@ static void scene1() {
             }
         }
 
-        for (auto& m : scene)
-            render(renderer, m, camera, L);
+        for (auto& m : scene) {
+            #if OPT_MULTITHREAD_USE_MT
+                renderMT(renderer, m, camera, L);
+            #else
+                render(renderer, m, camera, L);
+            #endif
+        }
         renderer.present();
     }
 
@@ -384,8 +420,13 @@ static void scene2() {
 
         if (renderer.canvas.keyPressed(VK_ESCAPE)) break;
 
-        for (auto& m : scene)
-            render(renderer, m, camera, L);
+        for (auto& m : scene) {
+            #if OPT_MULTITHREAD_USE_MT
+                renderMT(renderer, m, camera, L);
+            #else
+                render(renderer, m, camera, L);
+            #endif
+        }
         renderer.present();
     }
 
@@ -477,8 +518,13 @@ static void scene3() {
                 start = std::chrono::high_resolution_clock::now();
             }
         }
-        for (auto& m : scene)
-            render(renderer, m, camera, L);
+        for (auto& m : scene) {
+            #if OPT_MULTITHREAD_USE_MT
+                renderMT(renderer, m, camera, L);
+            #else
+                render(renderer, m, camera, L);
+            #endif
+        }
         renderer.present();
     }
     for (auto& m : scene)

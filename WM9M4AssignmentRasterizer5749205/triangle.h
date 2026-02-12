@@ -7,7 +7,6 @@
 #include "colour.h"
 #include "light.h"
 #include "mesh.h"
-#include "Multithread.h"
 #include "OptimisationProfiles.h"
 #include "renderer.h"
 

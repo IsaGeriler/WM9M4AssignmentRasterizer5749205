@@ -283,4 +283,36 @@ public:
             vertexCache[i] = vertex;
         }
     }
+
+    // Multithreading - Vertex Caching to avoid redundant calculations
+    void vertexPreProcessingMT(std::vector<Vertex>& vertexCache, matrix& p, unsigned int width, unsigned int height, size_t start, size_t end) {
+        // Allocate memory in the cache, according to the vertices size
+        vertexCache.resize(vertices.size());
+
+        // Half width and height
+        float half_width = 0.5f * static_cast<float>(width);
+        float half_height = 0.5f * static_cast<float>(height);
+
+        // Transform each vertex of the triangle
+        for (unsigned int i = 0; i < vertices.size(); i++) {
+            Vertex vertex;
+            vertex.p = p * vertices[i].p;  // Apply transformations
+            vertex.p.divideW();            // Perspective division to normalize coordinates
+
+            // Transform normals into world space for accurate lighting
+            // no need for perspective correction as no shearing or non-uniform scaling
+            vertex.normal = world * vertices[i].normal;
+            vertex.normal.normalise();
+
+            // Map normalized device coordinates to screen space
+            vertex.p[0] = (vertex.p[0] + 1.f) * half_width;
+            vertex.p[1] = (vertex.p[1] + 1.f) * half_height;
+
+            vertex.p[1] = height - vertex.p[1]; // Invert y-axis
+
+            // Copy vertex colours
+            vertex.rgb = vertices[i].rgb;
+            vertexCache[i] = vertex;
+        }
+    }
 };

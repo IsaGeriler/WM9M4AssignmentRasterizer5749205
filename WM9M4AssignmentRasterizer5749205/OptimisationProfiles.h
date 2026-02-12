@@ -34,4 +34,4 @@
 #define OPT_RASTER_DISABLE_REDUNDANT_HALF_WIDTH_HEIGH_MUL true
 
 // Multithread
-#define OPT_MULTITHREAD_USE_MT false
+#define OPT_MULTITHREAD_USE_MT true
