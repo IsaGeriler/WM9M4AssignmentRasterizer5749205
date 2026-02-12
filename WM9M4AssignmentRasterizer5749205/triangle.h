@@ -7,6 +7,7 @@
 #include "colour.h"
 #include "light.h"
 #include "mesh.h"
+#include "Multithread.h"
 #include "OptimisationProfiles.h"
 #include "renderer.h"
 
@@ -76,7 +77,7 @@ public:
     // Compute barycentric coordinates for a given point
     // Input Variables:
     // - p: Point to check within the triangle
-    // - invArea: Inverse area of the triangle (to avoid multiple calculations inside this)
+    // - area: Area of the triangle (to avoid multiple calculations inside, normal or inverse area depending on profiling)
     // Output Variables:
     // - alpha, beta, gamma: Barycentric coordinates of the point
     // Returns true if the point is inside the triangle, false otherwise
@@ -139,13 +140,12 @@ public:
         if (area < 1.f) return;
 
         #if OPT_TRIANGLE_BACKFACE_CULLING
-            if (signedArea <= 0.f) return;
+            if (signedArea < 0.f) return;
         #endif
 
         #if OPT_TRIANGLE_INV_AREA
             area = 1.f / area;
         #endif
-        // float invArea = 1.f / area;
 
         // Iterate over the bounding box and check each pixel
         for (int y = (int)(minV.y); y < (int)ceil(maxV.y); y++) {

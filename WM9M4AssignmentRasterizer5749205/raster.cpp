@@ -1,9 +1,11 @@
 #include <algorithm>
+#include <future>
 #include <iostream>
 #include <numbers>
 #include <chrono>
 
 #include "GamesEngineeringBase.h"  // Include the GamesEngineeringBase header
+#include "Multithread.h"
 #include "matrix.h"
 #include "colour.h"
 #include "mesh.h"
@@ -12,6 +14,8 @@
 #include "RNG.h"
 #include "light.h"
 #include "triangle.h"
+
+ThreadPool threadpool(std::thread::hardware_concurrency());
 
 // Main rendering function that processes a mesh, transforms its vertices, applies lighting, and draws triangles on the canvas.
 // Input Variables:
@@ -44,7 +48,10 @@ static void render(Renderer& renderer, Mesh* mesh, matrix& camera, Light& L) {
             t[1] = vertexCache[ind.v[1]];
             t[2] = vertexCache[ind.v[2]];
         #else
-            // Base Rasterizer
+            #if OPT_RASTER_DISABLE_REDUNDANT_HALF_WIDTH_HEIGH_MUL
+                float half_width = 0.5f * static_cast<float>(width);
+                float half_height = 0.5f * static_cast<float>(height);
+            #endif
             // Transform each vertex of the triangle
             for (unsigned int i = 0; i < 3; i++) {
                 t[i].p = p * mesh->vertices[ind.v[i]].p; // Apply transformations
@@ -56,8 +63,13 @@ static void render(Renderer& renderer, Mesh* mesh, matrix& camera, Light& L) {
                 t[i].normal.normalise();
 
                 // Map normalized device coordinates to screen space
-                t[i].p[0] = (t[i].p[0] + 1.f) * 0.5f * static_cast<float>(renderer.canvas.getWidth());
-                t[i].p[1] = (t[i].p[1] + 1.f) * 0.5f * static_cast<float>(renderer.canvas.getHeight());
+                #if OPT_RASTER_DISABLE_REDUNDANT_HALF_WIDTH_HEIGH_MUL
+                    vertex.p[0] = (vertex.p[0] + 1.f) * half_width;
+                    vertex.p[1] = (vertex.p[1] + 1.f) * half_height;
+                #else
+                    vertex.p[0] = (vertex.p[0] + 1.f) * 0.5f * static_cast<float>(width);
+                    vertex.p[1] = (vertex.p[1] + 1.f) * 0.5f * static_cast<float>(height);
+                #endif
                 t[i].p[1] = renderer.canvas.getHeight() - t[i].p[1]; // Invert y-axis
 
                 // Copy vertex colours
@@ -71,6 +83,10 @@ static void render(Renderer& renderer, Mesh* mesh, matrix& camera, Light& L) {
         triangle tri(t[0], t[1], t[2]);
         tri.draw(renderer, L, mesh->ka, mesh->kd);
     }
+}
+
+static void renderMT(Renderer& renderer, Mesh* mesh, matrix& camera, Light& L) {
+    matrix p = renderer.perspective * camera * mesh->world;
 }
 
 // Test scene function to demonstrate rendering with user-controlled transformations

@@ -129,8 +129,8 @@ public:
         mesh.triangles.clear();
 
         // Division is an expensive operation
-        float halfSize = size * 0.5f;
         // float halfSize = size / 2.0f;
+        float halfSize = size * 0.5f;
 
         // Define cube vertices (8 corners)
         vec4 positions[8] = {
@@ -191,11 +191,12 @@ public:
     // - longitudeDivisions: Number of divisions along the longitude
     // Returns a Mesh object representing the sphere
     static Mesh makeSphere(float radius, int latitudeDivisions, int longitudeDivisions) {
-        Mesh mesh;
+        // Mesh mesh;
         if (latitudeDivisions < 2 || longitudeDivisions < 3) {
             throw std::invalid_argument("Latitude divisions must be >= 2 and longitude divisions >= 3");
         }
 
+        Mesh mesh;
         mesh.vertices.clear();
         mesh.triangles.clear();
 
@@ -206,11 +207,13 @@ public:
 
         // Create vertices
         for (int lat = 0; lat <= latitudeDivisions; ++lat) {
+            // float theta = pi * lat / invLatitudeDivisions;
             float theta = pi * lat * invLatitudeDivisions;
             float sinTheta = std::sin(theta);
             float cosTheta = std::cos(theta);
 
             for (int lon = 0; lon <= longitudeDivisions; ++lon) {
+                // float phi = 2 * pi * lon / invLongitudeDivisions;
                 float phi = 2 * pi * lon * invLongitudeDivisions;
                 float sinPhi = std::sin(phi);
                 float cosPhi = std::cos(phi);
@@ -249,6 +252,10 @@ public:
     void vertexPreProcessing(std::vector<Vertex>& vertexCache, matrix& p, unsigned int width, unsigned int height) {
         // Allocate memory in the cache, according to the vertices size
         vertexCache.resize(vertices.size());
+        #if OPT_RASTER_DISABLE_REDUNDANT_HALF_WIDTH_HEIGH_MUL
+            float half_width = 0.5f * static_cast<float>(width);
+            float half_height = 0.5f * static_cast<float>(height);
+        #endif
 
         // Transform each vertex of the triangle
         for (unsigned int i = 0; i < vertices.size(); i++) {
@@ -262,8 +269,13 @@ public:
             vertex.normal.normalise();
 
             // Map normalized device coordinates to screen space
-            vertex.p[0] = (vertex.p[0] + 1.f) * 0.5f * static_cast<float>(width);
-            vertex.p[1] = (vertex.p[1] + 1.f) * 0.5f * static_cast<float>(height);
+            #if OPT_RASTER_DISABLE_REDUNDANT_HALF_WIDTH_HEIGH_MUL
+                vertex.p[0] = (vertex.p[0] + 1.f) * half_width;
+                vertex.p[1] = (vertex.p[1] + 1.f) * half_height;
+            #else
+                vertex.p[0] = (vertex.p[0] + 1.f) * 0.5f * static_cast<float>(width);
+                vertex.p[1] = (vertex.p[1] + 1.f) * 0.5f * static_cast<float>(height);
+            #endif
             vertex.p[1] = height - vertex.p[1]; // Invert y-axis
 
             // Copy vertex colours
