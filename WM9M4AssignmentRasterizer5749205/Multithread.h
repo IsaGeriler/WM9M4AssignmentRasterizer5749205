@@ -11,15 +11,16 @@
 class ThreadPool {
 private:
     std::atomic<bool> stopThreadPool = false;
-    std::atomic<unsigned int> active_jobs = 0;
-    std::condition_variable cv;        // Condition Variable for Signaling Changes      
-    std::mutex mtx;                    // Mutex for Synchronization
+    std::atomic<int> active_jobs = 0;
+    std::condition_variable cv;         // Condition Variable for Signaling Changes
+    std::condition_variable cv_finish;  // Condition Variable for Signaling Finish (use two different cv's to prevent crashes)
+    std::mutex mtx;                     // Mutex for Synchronization
     std::queue<std::function<void()>> jobQueue;
-    std::vector<std::thread> slaves;   // Vector of threads (worker threads/slaves)  
+    std::vector<std::thread> slaves;    // Vector of slaves/worker threads
 public:
-    ThreadPool(size_t cpu = std::thread::hardware_concurrency()) {
-        for (size_t i = 0; i < cpu; ++i) {
-            slaves.emplace_back([this] {
+    ThreadPool(size_t cpu) {
+        for (size_t i = 0; i < cpu; i++) {
+            slaves.emplace_back([this]() {
                 while (true) {
                     std::function<void()> job;
                     {
@@ -37,9 +38,10 @@ public:
                     }
                     job();
                     {
+                        // Safe syncronization for shared data
                         std::unique_lock<std::mutex> lock(mtx);
                         active_jobs--; //active_jobs -= 1;
-                        if (jobQueue.empty() && active_jobs == 0) cv.notify_one();
+                        if (jobQueue.empty() && active_jobs == 0) cv_finish.notify_one();
                     }
                 }
             });
@@ -72,7 +74,7 @@ public:
         // Safe update to make thread pool wait
         {
             std::unique_lock<std::mutex> lock(mtx);
-            cv.wait(lock, [this] { return jobQueue.empty() && active_jobs == 0; });
+            cv_finish.wait(lock, [this]() -> bool { return jobQueue.empty() && active_jobs == 0; });
         }
     }
 };

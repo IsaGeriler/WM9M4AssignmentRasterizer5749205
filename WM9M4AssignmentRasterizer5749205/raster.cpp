@@ -84,61 +84,58 @@ static void render(Renderer& renderer, Mesh* mesh, matrix& camera, Light& L) {
 }
 
 // Multithreaded Render Function
-size_t cpu = 1;  // 1 Thread just for testing reasons/sequential run
-static void renderMT(Renderer& renderer, Mesh* mesh, matrix& camera, Light& L) {
-    ThreadPool threadpool(cpu);
-    std::mutex mtx;
+size_t cpu = 8;  // Maximum Thread Count - std::thread::hardware_concurrency()
+ThreadPool threadpool(cpu);
+static void renderMT(Renderer& renderer, std::vector<Mesh*>& scene, matrix& camera, Light& L) {
+    for (auto& m : scene) {
+        // Combine perspective, camera, and world transformations for the mesh
+        matrix p = renderer.perspective * camera * m->world;
 
-    // Combine perspective, camera, and world transformations for the mesh
-    matrix p = renderer.perspective * camera * mesh->world;
+        // Normalize the light only once, as the direction is fixed!
+        L.omega_i.normalise();
 
-    // Normalize the light only once, as the direction is fixed!
-    L.omega_i.normalise();
+        int triangle_size = m->triangles.size();
+        int triangle_chunk = (triangle_size + cpu - 1) / cpu;
+        // std::cout << triangle_size << '\t' << cpu << '\t' << triangle_chunk << '\n';
 
-    size_t triangle_size = mesh->triangles.size();
-    size_t triangle_chunk = triangle_size / cpu;
-    if (triangle_chunk == 0) triangle_chunk = 1;
+        float half_width = 0.5f * static_cast<float>(renderer.canvas.getWidth());
+        float half_height = 0.5f * static_cast<float>(renderer.canvas.getHeight());
 
-    for (size_t start = 0; start < triangle_size; start += triangle_chunk) {
-        size_t end = (start + triangle_chunk < triangle_size) ? start + triangle_chunk : triangle_size;
-        threadpool.enqueue([&renderer, mesh, p, &L, start, end, &mtx] {
-            float half_width = 0.5f * static_cast<float>(renderer.canvas.getWidth());
-            float half_height = 0.5f * static_cast<float>(renderer.canvas.getHeight());
+        for (size_t start = 0; start < triangle_size; start += triangle_chunk) {
+            size_t end = (start + triangle_chunk < triangle_size) ? start + triangle_chunk : triangle_size;
+            threadpool.enqueue([&renderer, m, p, &L, start, end, half_width, half_height] {
+                for (size_t i = start; i < end; i++) {
+                    triIndices& ind = m->triangles[i];
+                    Vertex t[3]; // Temporary array to store transformed triangle vertices
 
-            for (size_t i = start; i < end; i++) {
-                triIndices& ind = mesh->triangles[i];
-                Vertex t[3]; // Temporary array to store transformed triangle vertices
+                    // Transform each vertex of the triangle
+                    for (unsigned int j = 0; j < 3; j++) {
+                        t[j].p = p * m->vertices[ind.v[j]].p; // Apply transformations
+                        t[j].p.divideW(); // Perspective division to normalize coordinates
 
-                // Transform each vertex of the triangle
-                for (unsigned int j = 0; j < 3; j++) {
-                    t[j].p = p * mesh->vertices[ind.v[j]].p; // Apply transformations
-                    t[j].p.divideW(); // Perspective division to normalize coordinates
+                        // Transform normals into world space for accurate lighting
+                        // no need for perspective correction as no shearing or non-uniform scaling
+                        t[j].normal = m->world * m->vertices[ind.v[j]].normal;
+                        t[j].normal.normalise();
 
-                    // Transform normals into world space for accurate lighting
-                    // no need for perspective correction as no shearing or non-uniform scaling
-                    t[j].normal = mesh->world * mesh->vertices[ind.v[j]].normal;
-                    t[j].normal.normalise();
+                        // Map normalized device coordinates to screen space
+                        t[j].p[0] = (t[j].p[0] + 1.f) * half_width;
+                        t[j].p[1] = (t[j].p[1] + 1.f) * half_height;
+                        t[j].p[1] = renderer.canvas.getHeight() - t[j].p[1]; // Invert y-axis
 
-                    // Map normalized device coordinates to screen space
-                    t[j].p[0] = (t[j].p[0] + 1.f) * half_width;
-                    t[j].p[1] = (t[j].p[1] + 1.f) * half_height;
-                    t[j].p[1] = renderer.canvas.getHeight() - t[j].p[1]; // Invert y-axis
+                        // Copy vertex colours
+                        t[j].rgb = m->vertices[ind.v[j]].rgb;
+                    }
 
-                    // Copy vertex colours
-                    t[j].rgb = mesh->vertices[ind.v[j]].rgb;
+                    // Clip triangles with Z-values outside [-1, 1]
+                    if (fabs(t[0].p[2]) > 1.0f || fabs(t[1].p[2]) > 1.0f || fabs(t[2].p[2]) > 1.0f) continue;
+
+                    // Create a triangle object and render it
+                    triangle tri(t[0], t[1], t[2]);
+                    tri.draw(renderer, L, m->ka, m->kd);
                 }
-
-                // Clip triangles with Z-values outside [-1, 1]
-                if (fabs(t[0].p[2]) > 1.0f || fabs(t[1].p[2]) > 1.0f || fabs(t[2].p[2]) > 1.0f) continue;
-
-                // Create a triangle object and render it
-                triangle tri(t[0], t[1], t[2]);
-                {
-                    std::unique_lock<std::mutex> lock(mtx);
-                    tri.draw(renderer, L, mesh->ka, mesh->kd);
-                }
-            }
-        });
+            });
+        }
     }
     threadpool.wait();
 }
@@ -368,13 +365,21 @@ static void scene1() {
             }
         }
 
-        for (auto& m : scene) {
-            #if OPT_MULTITHREAD_USE_MT
-                renderMT(renderer, m, camera, L);
-            #else
+        //for (auto& m : scene) {
+        //    #if OPT_MULTITHREAD_USE_MT
+        //        renderMT(renderer, m, camera, L);
+        //    #else
+        //        render(renderer, m, camera, L);
+        //    #endif
+        //}
+
+        
+        #if OPT_MULTITHREAD_USE_MT
+            renderMT(renderer, scene, camera, L);
+        #else
+            for (auto& m : scene)
                 render(renderer, m, camera, L);
-            #endif
-        }
+        #endif
         renderer.present();
     }
 
@@ -443,13 +448,20 @@ static void scene2() {
 
         if (renderer.canvas.keyPressed(VK_ESCAPE)) break;
 
-        for (auto& m : scene) {
-            #if OPT_MULTITHREAD_USE_MT
-                renderMT(renderer, m, camera, L);
-            #else
+        //for (auto& m : scene) {
+        //    #if OPT_MULTITHREAD_USE_MT
+        //        renderMT(renderer, m, camera, L);
+        //    #else
+        //        render(renderer, m, camera, L);
+        //    #endif
+        //}
+
+        #if OPT_MULTITHREAD_USE_MT
+            renderMT(renderer, scene, camera, L);
+        #else
+            for (auto& m : scene)
                 render(renderer, m, camera, L);
-            #endif
-        }
+        #endif
         renderer.present();
     }
 
@@ -541,13 +553,21 @@ static void scene3() {
                 start = std::chrono::high_resolution_clock::now();
             }
         }
-        for (auto& m : scene) {
-            #if OPT_MULTITHREAD_USE_MT
-                renderMT(renderer, m, camera, L);
-            #else
+
+        //for (auto& m : scene) {
+        //    #if OPT_MULTITHREAD_USE_MT
+        //        renderMT(renderer, m, camera, L);
+        //    #else
+        //        render(renderer, m, camera, L);
+        //    #endif
+        //}
+
+        #if OPT_MULTITHREAD_USE_MT
+            renderMT(renderer, scene, camera, L);
+        #else
+            for (auto& m : scene)
                 render(renderer, m, camera, L);
-            #endif
-        }
+        #endif
         renderer.present();
     }
     for (auto& m : scene)
