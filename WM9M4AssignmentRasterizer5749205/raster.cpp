@@ -15,9 +15,6 @@
 #include "light.h"
 #include "triangle.h"
 
-const size_t cpu = std::thread::hardware_concurrency();
-ThreadPool threadpool(cpu);
-
 // Main rendering function that processes a mesh, transforms its vertices, applies lighting, and draws triangles on the canvas.
 // Input Variables:
 // - renderer: The Renderer object used for drawing.
@@ -86,30 +83,52 @@ static void render(Renderer& renderer, Mesh* mesh, matrix& camera, Light& L) {
     }
 }
 
+// Multithreaded Render Function
+constexpr size_t cpu = 1;  // 1 Thread just for testing reasons
+static ThreadPool threadpool(cpu);
 static void renderMT(Renderer& renderer, Mesh* mesh, matrix& camera, Light& L) {
     // Combine perspective, camera, and world transformations for the mesh
     matrix p = renderer.perspective * camera * mesh->world;
 
+    // Normalize the light only once, as the direction is fixed!
+    L.omega_i.normalise();
+
+    // Implement MT Vertex Caching if this issue is resolved...
+
     size_t triangle_size = mesh->triangles.size();
-    size_t triangle_chunk = (triangle_size) / cpu;
+    size_t triangle_chunk = triangle_size / cpu;
 
     for (size_t start = 0; start < triangle_size; start += triangle_chunk) {
-        size_t end = (start + triangle_chunk > triangle_size) ? start + triangle_chunk : triangle_size;
-        threadpool.enqueue([&renderer, mesh, &p, &L, start, end] {
-            std::vector<Vertex> vertexCache;
-            mesh->vertexPreProcessingMT(vertexCache, p, renderer.canvas.getWidth(), renderer.canvas.getHeight(), start, end);
+        size_t end = (start + triangle_chunk < triangle_size) ? start + triangle_chunk : triangle_size;
+        threadpool.enqueue([&renderer, mesh, p, &L, start, end]() {
+            float half_width = 0.5f * static_cast<float>(renderer.canvas.getWidth());
+            float half_height = 0.5f * static_cast<float>(renderer.canvas.getHeight());
 
-            // Iterate through all triangles in the mesh
             for (size_t i = start; i < end; i++) {
                 triIndices& ind = mesh->triangles[i];
-                Vertex t[3];  // Temporary array to store transformed triangle vertices
+                Vertex t[3]; // Temporary array to store transformed triangle vertices
 
-                t[0] = vertexCache[ind.v[0]];
-                t[1] = vertexCache[ind.v[1]];
-                t[2] = vertexCache[ind.v[2]];
+                // Transform each vertex of the triangle
+                for (unsigned int j = 0; j < 3; j++) {
+                    t[j].p = p * mesh->vertices[ind.v[j]].p; // Apply transformations
+                    t[j].p.divideW(); // Perspective division to normalize coordinates
+
+                    // Transform normals into world space for accurate lighting
+                    // no need for perspective correction as no shearing or non-uniform scaling
+                    t[j].normal = mesh->world * mesh->vertices[ind.v[j]].normal;
+                    t[j].normal.normalise();
+
+                    // Map normalized device coordinates to screen space
+                    t[j].p[0] = (t[i].p[0] + 1.f) * half_width;
+                    t[j].p[1] = (t[i].p[1] + 1.f) * half_height;
+                    t[j].p[1] = renderer.canvas.getHeight() - t[j].p[1]; // Invert y-axis
+
+                    // Copy vertex colours
+                    t[j].rgb = mesh->vertices[ind.v[j]].rgb;
+                }
 
                 // Clip triangles with Z-values outside [-1, 1]
-                if (fabs(t[0].p[2]) > 1.f || fabs(t[1].p[2]) > 1.f || fabs(t[2].p[2]) > 1.f) continue;
+                if (fabs(t[0].p[2]) > 1.0f || fabs(t[1].p[2]) > 1.0f || fabs(t[2].p[2]) > 1.0f) continue;
 
                 // Create a triangle object and render it
                 triangle tri(t[0], t[1], t[2]);
@@ -535,10 +554,10 @@ static void scene3() {
 // No input variables
 int main() {
     // Uncomment the desired scene function to run
-    //scene1();
+    scene1();
     //scene2();
     //scene3_prototype();
-    scene3();
+    //scene3();
     //sceneTest();
     return 0;
 }
