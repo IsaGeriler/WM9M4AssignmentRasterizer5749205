@@ -84,23 +84,24 @@ static void render(Renderer& renderer, Mesh* mesh, matrix& camera, Light& L) {
 }
 
 // Multithreaded Render Function
-constexpr size_t cpu = 1;  // 1 Thread just for testing reasons
-static ThreadPool threadpool(cpu);
+size_t cpu = 1;  // 1 Thread just for testing reasons/sequential run
 static void renderMT(Renderer& renderer, Mesh* mesh, matrix& camera, Light& L) {
+    ThreadPool threadpool(cpu);
+    std::mutex mtx;
+
     // Combine perspective, camera, and world transformations for the mesh
     matrix p = renderer.perspective * camera * mesh->world;
 
     // Normalize the light only once, as the direction is fixed!
     L.omega_i.normalise();
 
-    // Implement MT Vertex Caching if this issue is resolved...
-
     size_t triangle_size = mesh->triangles.size();
     size_t triangle_chunk = triangle_size / cpu;
+    if (triangle_chunk == 0) triangle_chunk = 1;
 
     for (size_t start = 0; start < triangle_size; start += triangle_chunk) {
         size_t end = (start + triangle_chunk < triangle_size) ? start + triangle_chunk : triangle_size;
-        threadpool.enqueue([&renderer, mesh, p, &L, start, end]() {
+        threadpool.enqueue([&renderer, mesh, p, &L, start, end, &mtx] {
             float half_width = 0.5f * static_cast<float>(renderer.canvas.getWidth());
             float half_height = 0.5f * static_cast<float>(renderer.canvas.getHeight());
 
@@ -119,8 +120,8 @@ static void renderMT(Renderer& renderer, Mesh* mesh, matrix& camera, Light& L) {
                     t[j].normal.normalise();
 
                     // Map normalized device coordinates to screen space
-                    t[j].p[0] = (t[i].p[0] + 1.f) * half_width;
-                    t[j].p[1] = (t[i].p[1] + 1.f) * half_height;
+                    t[j].p[0] = (t[j].p[0] + 1.f) * half_width;
+                    t[j].p[1] = (t[j].p[1] + 1.f) * half_height;
                     t[j].p[1] = renderer.canvas.getHeight() - t[j].p[1]; // Invert y-axis
 
                     // Copy vertex colours
@@ -132,7 +133,10 @@ static void renderMT(Renderer& renderer, Mesh* mesh, matrix& camera, Light& L) {
 
                 // Create a triangle object and render it
                 triangle tri(t[0], t[1], t[2]);
-                tri.draw(renderer, L, mesh->ka, mesh->kd);
+                {
+                    std::unique_lock<std::mutex> lock(mtx);
+                    tri.draw(renderer, L, mesh->ka, mesh->kd);
+                }
             }
         });
     }
