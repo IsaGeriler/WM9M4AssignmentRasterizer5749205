@@ -95,7 +95,7 @@ static void renderMT(Renderer& renderer, std::vector<Mesh*>& scene, matrix& came
         L.omega_i.normalise();
 
         int triangle_size = m->triangles.size();
-        int triangle_chunk = (triangle_size + cpu - 1) / cpu;
+        int triangle_chunk = 8 * (triangle_size + cpu - 1) / cpu;
         // std::cout << triangle_size << '\t' << cpu << '\t' << triangle_chunk << '\n';
 
         float half_width = 0.5f * static_cast<float>(renderer.canvas.getWidth());
@@ -578,10 +578,10 @@ static void scene3() {
 // No input variables
 int main() {
     // Uncomment the desired scene function to run
-    scene1();
+    //scene1();
     //scene2();
     //scene3_prototype();
-    //scene3();
+    scene3();
     //sceneTest();
     return 0;
 }
