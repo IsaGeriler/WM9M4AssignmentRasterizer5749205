@@ -33,5 +33,5 @@
 #define OPT_RASTER_ENABLE_VERTEX_CACHING true
 #define OPT_RASTER_DISABLE_REDUNDANT_HALF_WIDTH_HEIGH_MUL true
 
-// Multithread
+// Multithread Support
 #define OPT_MULTITHREAD_USE_MT true
