@@ -84,7 +84,13 @@ static void render(Renderer& renderer, Mesh* mesh, matrix& camera, Light& L) {
 }
 
 // Multithreaded Render Function
-size_t cpu = 8;  // Maximum Thread Count - std::thread::hardware_concurrency()
+// Total Cores 16
+// # of Performance-cores 6
+// # of Efficient-cores 8
+// # of Low Power Efficient-cores 2
+// Total Threads 22
+// https://www.intel.com/content/www/us/en/products/sku/236847/intel-core-ultra-7-processor-155h-24m-cache-up-to-4-80-ghz/specifications.html
+size_t cpu = 6;  // Maximum Thread Count - std::thread::hardware_concurrency()
 ThreadPool threadpool(cpu);
 static void renderMT(Renderer& renderer, std::vector<Mesh*>& scene, matrix& camera, Light& L) {
     for (auto& m : scene) {

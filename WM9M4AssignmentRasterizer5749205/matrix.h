@@ -43,7 +43,7 @@ public:
     vec4 operator*(const vec4& v) const {
         vec4 result;
         #if OPT_MATRIX_VECMUL_AVX
-            // Optimisation - AVX/SSE Multiplication (SIMD, using m128 registers (4 floats))
+            // Optimisation - SSE/AVX Multiplication (SIMD, using m128 registers (4 floats))
             // Load in the vector to the m128 register
             __m128 vec = _mm_loadu_ps(v.v);
 
@@ -91,7 +91,7 @@ public:
     matrix operator*(const matrix& mx) const {
         matrix ret;
         #if OPT_MATRIX_4X4MUL_AVX
-            // Optimisation - AVX/SSE Multiplication (SIMD, using m128 registers (4 floats))
+            // Optimisation - SSE/AVX Multiplication (SIMD, using m128 registers (4 floats))
             // Important: A x B != B x A
             // Load the entirety of mx/right-hand side matrix
             __m128 row_one = _mm_loadu_ps(&mx.m[0][0]);
