@@ -84,6 +84,7 @@ static void render(Renderer& renderer, Mesh* mesh, matrix& camera, Light& L) {
 }
 
 // Multithreaded Render Function
+// CPU - Intel Core Ultra 7 155H
 // Total Cores 16
 // # of Performance-cores 6
 // # of Efficient-cores 8
